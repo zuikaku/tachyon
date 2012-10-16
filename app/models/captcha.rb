@@ -7,6 +7,15 @@ class Captcha < ActiveRecord::Base
   before_create do 
     old_captcha.destroy if (old_captcha = Captcha.where(word: self.word).first)
     old_captcha.destroy if (old_captcha = Captcha.where(key: self.key).first)
+    self.generate_image
+  end
+
+  before_destroy do
+    begin
+      File.delete("#{Rails.root}/public/captcha/#{self.key}.png")
+    rescue
+      # don't give a fuck
+    end
   end
 
   def self.get_word(cancer=false)
@@ -74,7 +83,7 @@ class Captcha < ActiveRecord::Base
   end
 
   def self.get_key(defence)
-    if (record = Captcha.first(order: RANDOM))
+    if (record = Captcha.where(defensive: defence).first(order: RANDOM))
       if record.defensive == defence
         time_passed = Time.now - record.created_at
         if time_passed > 3.minutes and time_passed < 6.minutes
@@ -85,20 +94,79 @@ class Captcha < ActiveRecord::Base
       end
     end
     if defence
-      # ololo
       word = String.new
-      word += Captcha.get_word
-      word += Captcha.get_word
-      word += Captcha.get_word
-      word += Captcha.get_word + "\n"
-      word += Captcha.get_word
-      word += Captcha.get_word
-      word += Captcha.get_word
-      word += Captcha.get_word + "\n"
+      1.upto(8) do |i|
+        word += Captcha.get_word
+        word += "\n" if [4, 8].include?(i)
+      end
     else
       word = Captcha.get_word(cancer: true)
     end
-    key  = rand(89999999)
-    return key if Captcha.create(word: word, key: key, defensive: defence)
+    key = 100000000 + rand(899999999)
+    record = Captcha.create(word: word, key: key, defensive: defence)
+    return record.key
+  end
+
+  def self.validate(word, key)
+    if (captcha = Captcha.where(key: key).first)
+      word          = word.to_s.mb_chars.downcase.gsub("\n", '').gsub(' ', '')
+      captcha.word  = captcha.word.mb_chars.downcase.gsub("\n", '').gsub(' ', '')
+      captcha.destroy
+      return (word == captcha.word)
+    else 
+      return nil
+    end
+  end
+
+  def generate_image
+    path = "#{Rails.root}/public/captcha"
+    Dir::mkdir(path) unless File.directory?(path)
+    captcha_word = self.word
+    rows = captcha_word.scan(/\n/).size
+    rows = 1 if rows == 0
+    image = Magick::Image.new((captcha_word.length*19+rand(-5..5))/rows, 30*rows) {
+      self.background_color = 'transparent'
+    }
+    iterator    = 0
+    offset      = -10
+    last_symbol = String.new
+    current_row = 1
+    while iterator < captcha_word.length
+      if captcha_word[iterator] == "\n"
+        iterator    += 1
+        current_row += 1
+        offset      = -10
+        next
+      end
+      offset    += 15
+      offset    += 6 if ['ж', 'щ', 'ш', 'ф', 'м', 'ю'].include?(last_symbol)
+      bigs_ones = 'А.Е.И.О.У.Э.Ю.Я.Б.В.Г.Д.Ж.З.Й.К.Л.М.Н.П.Р.С.Т.Ф.Х.Ц.Ч.Ш.Щ'.split('.')
+      pointsize = 24 + rand(0..4)
+      pointsize = 22 + rand(0..8) if self.defensive
+      letter    = captcha_word[iterator]
+      letter    = letter.mb_chars.upcase if rand(9) > 4
+      pointsize = 19 + rand(0..5) if bigs_ones.include?(letter)
+      random    = (rand(0..10) > 5)
+      p         = 1
+      p         += 0.7 if self.defensive
+      image.annotate(Magick::Draw.new, 0, 0, offset, -10+30*current_row, letter) {
+        self.font_family    = ['Times New Roman', 'Consolas', 'Trebuchet', 'Verdana', 'Georgia', ][rand(0..4)]
+        self.fill           = "##{(60 + rand(39)).to_s * 3}"
+        self.pointsize      = pointsize
+        self.gravity        = Magick::SouthGravity
+        self.align          = Magick::LeftAlign
+        self.text_antialias = true
+        self.rotation       = rand(-20*p..-10*p) if random
+        self.rotation       = rand(10*p..20*p) unless random
+      }
+      last_symbol = captcha_word[iterator]
+      iterator += 1
+    end
+    # image = image.add_noise(Magick::PoissonNoise)
+    image.format  = 'PNG'
+    degree        = rand(9..16)
+    degree        -= degree * 2 if rand(10) > 5
+    image         = image.swirl(degree) unless self.defensive
+    image.write("#{path}/#{self.key}.png")
   end
 end

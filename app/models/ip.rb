@@ -4,6 +4,10 @@ class Ip < ActiveRecord::Base
   has_many  :r_files
   has_one   :ban
 
+  before_create do 
+    self.post_captcha_needed = true
+  end
+
   def self.get(address)
     unless (ip = Ip.where(address: address).first)
       ip = Ip.create({
@@ -15,14 +19,24 @@ class Ip < ActiveRecord::Base
     return ip
   end
 
-  def get_ban
+  def banned?
     if (ban = self.ban)
       if Time.now > ban.expires
         ban.destroy
-        return nil
+        return false
       end
+      return true
     end
-    return ban
+    return false
+  end
+
+  def update_last(post)
+    if post.kind_of?(RPost)
+      self.last_post = post.created_at
+    else
+      self.last_thread = post.created_at
+    end
+    self.save
   end
 
   def ban_ip(reason, expiration_date, moder_id)

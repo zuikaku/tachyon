@@ -1,6 +1,6 @@
 class IdCounter < ActiveRecord::Base
   def self.get_next_rid(thread=true)
-    record = self.create unless (record = IdCounter.first)
+    record = IdCounter.create unless (record = IdCounter.first)
     if thread
       record.total_threads += 1
     else

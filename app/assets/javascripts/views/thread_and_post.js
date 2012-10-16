@@ -1,31 +1,79 @@
 var ThreadView = Backbone.View.extend({
     tagName:    'div',
-    attributes: {
-        class: 'thread_container'
-    },
-    el:         '',
+    className:  'thread',
 
     events:     {
-        "mouseover .thread .file_container": "showFileInfo",
-        "mouseout  .thread .file_container": "hideFileInfo",
+        "mouseover .file_container":    "showFileInfo",
+        "mouseout  .file_container":    "hideFileInfo",
+        "click .qr_link":               "callReplyForm",
+        "click .post_header .post_link": "callReplyForm",
     },
 
-    showFileInfo: function() {
-        var selector = '.file_info';
-        if (this.$el.hasClass('thread_container')) {
-            selector = ".thread " + selector;
-        }
-        this.$el.find(selector).css('display', 'block');
+    initialize: function(attributes, model, full, formLink) {
+        this.model = model;
+        this.formLink = formLink,
+        this.full = full;
         return this;
     },
 
-    hideFileInfo: function() {
-        var selector = '.file_info';
-        if (this.$el.hasClass('thread_container')) {
-            selector = ".thread " + selector;
-        }
-        this.$el.find(selector).css('display', 'none');
+    scrollTo: function() {
+        window.scrollTo(0, this.$el.offset().top - 150);
+        // window.scrollTo(200, 0);
         return this;
+    },
+
+    callReplyForm: function(event) {
+        event.preventDefault();
+        var parentID = this.model.get('thread_rid');
+        if (parentID == undefined) {
+            parentID = this.model.get('rid');
+        }
+        this.formLink.show(this.model.get('rid'), parentID, 'reply');
+        return false;
+    },
+
+    showFileInfo: function(event) {
+        $(event.currentTarget).find('.file_info').css('display', 'block');
+    },
+
+    hideFileInfo: function(event) {
+        $(event.currentTarget).find('.file_info').css('display', 'none');
+    },
+
+    renderDateTime: function(datetime) {
+        datetime = datetime.split("T");
+        var date = datetime[0].split('-');
+        var today = new Date();
+        if (date[2][0] == '0') {
+            date[2] = date[2][1];
+        }
+        if (date[1][0] == '0') {
+            date[1] = date[1][1];
+        }
+        date[0] = parseInt(date[0]);
+        date[1] = parseInt(date[1]);
+        date[2] = parseInt(date[2]);
+        if (today.getDate() == date[2] && today.getMonth() == date[1] 
+            && today.getYear() == date[0]) {
+            var t = 'сегодня в ';
+        } else if (today.getDate() == date[2]-1 && today.getMonth() == date[1] 
+            && today.getYear() == date[0]) {
+            var t = 'вчера в ';
+        } else {
+            var t = date[2] + ' ';
+            var monthNames = {
+                1:  'января',   2:  'февраля',
+                3:  'марта',    4:  'апреля',
+                5:  'мая',      6:  'июня',
+                7:  'июля',     8:  'августа',
+                9:  'сентября', 10: 'октября',
+                11: 'ноября',   12: 'января'
+            }
+            t += monthNames[date[1]] + ' ';
+            t += date[0] + ' г. в ';
+        }
+        t += datetime[1].substring(0, 8);
+        return t;
     },
 
     renderFileContainer: function(file) {
@@ -44,6 +92,9 @@ var ThreadView = Backbone.View.extend({
             if (file.thumb_rows != null) {
                 t += "width=" + file.thumb_columns;
                 t += " height=" + file.thumb_rows;
+            } else if (file.extension == 'video') {
+                t += "width=" + 320;
+                t += " height=" + 240;
             }
             t += "/>";
         t += "</a>";
@@ -83,63 +134,52 @@ var ThreadView = Backbone.View.extend({
         return t;
     },
 
-    render: function(params) {
-        var t = "<div class='thread'>";
-        t += "<div class='thread_body'>";
-            if (params.file != null) {
-                t += this.renderFileContainer(params.file);
+    render: function() {
+        var t = "<div class='thread_body'>";
+            if (this.model.get('file') != null) {
+                t += this.renderFileContainer(this.model.get('file'));
             }
-            t += "<a href='/thread/" + params.rid + "' class='title'>";
-                if (params.title == '') {
-                    t += "Тред №" + params.rid;
+            t += "<a href='/thread/" + this.model.get('rid') + "' class='title'>";
+                if (this.model.get('title') == '') {
+                    t += "Тред №" + this.model.get('rid');
                 } else {
-                    t += params.title;
+                    t += this.model.get('title');
                 }
-            t += "</a><a href='/#" + params.rid + "/toggle_fav' title='Добавить в избранное' class='fav_button'>";
-                t += "<img src='/";
-                if (production == false) { t += "assets/"; }
-                t += "ui/star_black.png' />";
-
+            t += "</a><a href='#' title='Добавить в избранное' class='fav_button'>";
+                t += "<img src='/assets/ui/star_black.png' />";
             t += "</a>";
-            t += "</a><a href='/#" + params.rid + "/toggle_hide' title='Скрыть' class='hide_button'>";
-                t += "<img src='/";
-                if (production == false) { t += "assets/"; }
-                t += "ui/hide.png' />";
+            t += "</a><a href='#' title='Скрыть' class='hide_button'>";
+                t += "<img src='/assets/ui/hide.png' />";
             t += "</a>";
             t += "</a><a href='#' title='Быстрый ответ' class='qr_link'>";
-                t += "<img src='/";
-                if (production == false) { t += "assets/"; }
-                t += "ui/reply.png' />";
+                t += "<img src='/assets/ui/reply.png' />";
             t += "</a>";
             t += "<span class='thread_info'>";
-                t += params.created_at + ', ';
+                t += this.renderDateTime(this.model.get('created_at')) + ', ';
                 t += "<span class='taglist'>тэги: ";
-                    for (var i=0; i < params.tags.length; i++) {
-                        t += "<a href='/" + params.tags[i].alias + "/' ";
-                        t += "title='" + params.tags[i].alias + "'>" + params.tags[i].name + "</a>";
-                        if (i != (params.tags.length - 1)) {
+                    var tags = this.model.get('tags')
+                    for (var i=0; i < tags.length; i++) {
+                        t += "<a href='/" + tags[i].alias + "/' ";
+                        t += "title='" + tags[i].alias + "'>" + tags[i].name + "</a>";
+                        if (i != (tags.length - 1)) {
                             t += ",";
                         }
                         t += " ";
                     }
                 t += "</span>";
             t += "</span>";
-            t += "<blockquote>" + params.message + "</blockquote>";
-            if (params.replies_rids.length > 0) {
-                t += this.renderRepliesRids(params.replies_rids);
+            t += "<blockquote>" + this.model.get('message') + "</blockquote>";
+            if (this.model.get('replies_rids').length > 0) {
+                t += this.renderRepliesRids(this.model.get('replies_rids'));
             }
         t += "</div>";
-        if (params.replies_count > 5) {
-            t += "<div class='omitted'>" + (params.replies_count - 5);
-            t += " постов спустя:</div>";
-        }
-        t += "</div>"; 
-        this.$el.append(t);
-        if (params.posts != undefined) {
-            for (var i=0; i < params.posts.length; i++) {
-                this.$el.append((new PostView).render(params.posts[i]).el);
+        if (this.model.posts != undefined) {
+            if (this.full != true && this.model.get('replies_count') > this.model.posts.length) {
+                t += "<div class='omitted'>" + (this.model.get('replies_count') - 6);
+                t += " постов спустя:</div>";
             }
         }
+        this.el.innerHTML = t;
         return this;
     }
 });
@@ -149,38 +189,47 @@ var ThreadView = Backbone.View.extend({
 
 var PostView = ThreadView.extend({
     tagName:    'div',
-    attributes: {
-        class: 'post_container'
-    },
+    className:  'post_container',
     el:         '',
 
-    events:     {
-        "mouseover .post .file_container": "showFileInfo",
-        "mouseout  .post .file_container": "hideFileInfo",
+    initialize: function(attributes, model, formLink) {
+        this.model = model;
+        this.formLink = formLink;
+        return this;
     },
 
-    render: function(params) {
-        var url = "/" + params.thread_rid + "#i" + params.rid;
+    testing: function() {
+        alert(this.model.get('rid'));
+    },
+
+    highlight: function() {
+        $('.post.highlighted').removeClass('highlighted');
+        this.$el.find('.post').first().addClass('highlighted');
+        return this;
+    },
+
+    render: function() {
+        var url = "/" + this.model.get('thread_rid') + "#i" + this.model.get('rid');
         var t = "<div class='post'>";
         t += "<div class='post_header'>";
             t += "<span><a href='" + url + "' class='post_link'>";
-            t += "#" + params.rid + "</a></span>";
-            t += "<span class='title'>" + params.title + "</span>";
-            t += "<span>" + params.created_at + "</span>";
-            if (params.sage == true) {
+            t += "#" + this.model.get('rid') + "</a></span>";
+            t += "<span class='title'>" + this.model.get('title') + "</span>";
+            t += "<span class='date'>" + this.renderDateTime(this.model.get('created_at')) + "</span>";
+            if (this.model.get('sage') == true) {
                 t += "<span class='sage'>sage</span>";
             }
         t += "</div>";
         t += "<div class='post_body'>";
-            if (params.file != null) {
-                t += this.renderFileContainer(params.file);
+            if (this.model.get('file') != null) {
+                t += this.renderFileContainer(this.model.get('file'));  
             }
-            t += "<blockquote>" + params.message + "</blockquote>";
-            if (params.replies_rids.length > 0) {
-                t += this.renderRepliesRids(params.replies_rids);
+            t += "<blockquote>" + this.model.get('message') + "</blockquote>";
+            if (this.model.get('replies_rids').length > 0) {
+                t += this.renderRepliesRids(this.model.get('replies_rids'));
             }
         t += "</div></div>";
-        this.$el.append(t);
+        this.el.innerHTML = t;
         return this;
     }
 });

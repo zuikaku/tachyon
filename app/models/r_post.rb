@@ -11,6 +11,9 @@ class RPost < ActiveRecord::Base
 
   before_create do
     self.replies_rids = Array.new
+    self.r_thread.replies_count += 1
+    self.r_thread.bump = self.created_at unless self.sage
+    self.r_thread.save
   end
 
   before_destroy do
@@ -56,20 +59,7 @@ class RPost < ActiveRecord::Base
     if self.has_file?
       files.each do |file|
         if file.id == self.r_file_id
-          data[:file] = {
-            filename:   file.filename,
-            size:       file.size,
-            extension:  file.extension,
-            url_full:   file.url_full,
-            url_small:  file.url_small,
-            is_picture: file.picture?,
-            columns:    file.columns,
-            rows:       file.rows,
-            thumb_rows: file.thumb_rows,
-            thumb_columns: file.thumb_columns,
-            video_duration: file.video_duration,
-            video_title: file.video_title
-          }
+          data[:file] = file.jsonify
           break
         end
       end

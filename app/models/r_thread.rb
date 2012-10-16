@@ -1,7 +1,7 @@
 class RThread < ActiveRecord::Base
   has_and_belongs_to_many :tags
   has_many                :r_posts
-  has_many                :last_posts, class_name: RPost, order: "id DESC", limit: 5
+  has_many                :last_posts, class_name: RPost, order: "id DESC", limit: 6
   belongs_to              :r_file
   belongs_to              :ip
 
@@ -77,20 +77,7 @@ class RThread < ActiveRecord::Base
     if self.has_file?
       files.each do |file|
         if file.id == self.r_file_id
-          data[:file] = {
-            filename:   file.filename,
-            size:       file.size,
-            extension:  file.extension,
-            url_full:   file.url_full,
-            url_small:  file.url_small,
-            is_picture: file.picture?,
-            columns:    file.columns,
-            rows:       file.rows,
-            thumb_rows: file.thumb_rows,
-            thumb_columns: file.thumb_columns,
-            video_duration: file.video_duration,
-            video_title: file.video_title
-          }
+          data[:file] = file.jsonify
           break
         end
       end
@@ -104,9 +91,5 @@ class RThread < ActiveRecord::Base
       result << {alias: tag.alias, name: tag.name}
     end
     return result
-  end
-
-  def last_replies(number)
-    self.r_posts.order('created_at DESC').limit(number).to_a.reverse
   end
 end

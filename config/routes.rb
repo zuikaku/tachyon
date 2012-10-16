@@ -2,9 +2,11 @@ Tachyon::Application.routes.draw do
   root to: 'application#index'
 
   scope "utility" do 
-    match 'get_tags' => 'application#get_tags', via: 'post'
+    match 'get_tags'    => 'application#get_tags', via: 'post'
   end
 
-  match ':tag' => 'threads#index'
   match 'thread/:rid' => 'threads#show', constraints: { rid: /\d+/ }
+  match ':tag' => 'threads#index'
+  match ':tag/page/:page' => 'threads#page', constraints: { page: /\d+/ }
+  match '*path' => 'application#index';
 end
