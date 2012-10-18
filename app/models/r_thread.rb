@@ -62,7 +62,7 @@ class RThread < ActiveRecord::Base
     return result
   end
 
-  def jsonify(files)
+  def jsonify(files=nil)
     data = {
         rid:            self.rid,
         message:        self.message,
@@ -75,10 +75,14 @@ class RThread < ActiveRecord::Base
         tags:           self.tags_jsonify,
       }
     if self.has_file?
-      files.each do |file|
-        if file.id == self.r_file_id
-          data[:file] = file.jsonify
-          break
+      if files == nil
+        data[:file] = self.r_file.jsonify
+      else
+        files.each do |file|
+          if file.id == self.r_file_id
+            data[:file] = file.jsonify
+            break
+          end
         end
       end
     end

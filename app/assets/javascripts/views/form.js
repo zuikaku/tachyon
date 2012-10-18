@@ -3,7 +3,7 @@ var FormView = Backbone.View.extend({
     id:         'qr_form',
     attributes: {
         method:     'post',
-        multipart:  true,
+        enctype:    'multipart/form-data',
         action:     '/create'
     },
 
@@ -61,7 +61,7 @@ var FormView = Backbone.View.extend({
 
     show: function(postRid, threadRid, what) {
         if (what == 'reply') {
-            var action = '/' + threadRid + '/reply';
+            var action = '/thread/' + threadRid + '/reply';
             var disclaimer = 'Ответить в тред #' + threadRid;
             this.toggleTagsOrSage('sage');
         } else {

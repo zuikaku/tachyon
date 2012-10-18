@@ -2,6 +2,7 @@
 //= require jquery_ujs
 //= require underscore
 //= require backbone
+//= require faye
 
 //= require models
 //= require views/form
@@ -19,7 +20,8 @@ var VERSION = 0.1;
 $(document).ready(function() {
 
 var threadsCollection, section, controller, action,
-mouseOverElement, loadingTimeout, previousPath = null;
+mouseOverElement, loadingTimeout, previousPath, cometClient,
+cometSubscription = null;
 
 var MainRouter = Backbone.Router.extend({
     routes: {
@@ -33,7 +35,6 @@ var MainRouter = Backbone.Router.extend({
     }, 
 
     before: function(response) {
-        header.setCounters(response.counters);
         header.$el.find(".active").removeClass('active');
         tagList.$el.find(".selected").removeClass('selected');
         if (response.status == 'not found') {
@@ -61,20 +62,19 @@ var MainRouter = Backbone.Router.extend({
     },
 
     show: function(rid) {
-        var routerLink = this;
         showLoadingIndicator();
         $.ajax({
             type:       'post',
             url:        document.location,
             success:    function(response) {
                 controller = 'threads'; action = 'index';
-                if (routerLink.before(response) == false) {
+                if (router.before(response) == false) {
                     return false;
                 }
                 section.html('');
                 hideLoadingIndicator();
                 window.scrollTo(0, 0);
-                result = routerLink.showThread(response.thread, true)
+                result = router.showThread(response.thread, true)
                 section.append(result[0]);
                 threadsCollection = new ThreadsCollection([result[1]]);
                 backLink = $("<a href='/~/' class='back_link'>Назад</a>");
@@ -83,12 +83,20 @@ var MainRouter = Backbone.Router.extend({
                 }
                 section.append(backLink);
                 checkHash();
+                if (cometSubscription != null) {
+                    cometSubscription.cancel();
+                }
+                cometSubscription = cometClient.subscribe('/thread/' + rid, function(message) {
+                    var post = new PostModel(message);
+                    threadsCollection.first().posts.add(new PostModel(message));
+                    var newPostView = new PostView({id: 'i' + post.get('rid')}, post, form);
+                    post.view = newPostView;
+                    $('#thread_container').append(newPostView.render(true).el);
+                    return false;
+                });
                 return false;
             },
-            error: routerLink.showError,
-            // error: function(response) {
-            //     routerLink.showError(response.responseText);
-            // },
+            error: router.showError,
         });
         return false;
     },
@@ -96,7 +104,6 @@ var MainRouter = Backbone.Router.extend({
     showPage: function(tag, page) {
         showLoadingIndicator();
         page = parseInt(page);
-        var routerLink = this;
         var link = '/' + tag;
         if (page != 1) {
             link += '/page/' + page;
@@ -106,7 +113,7 @@ var MainRouter = Backbone.Router.extend({
             url:  document.location,
             success: function(response) {
                 controller = 'threads'; action = 'index';
-                if (routerLink.before(response) == false) {
+                if (router.before(response) == false) {
                     return false;
                 }
                 if (tag == '~') {
@@ -121,7 +128,7 @@ var MainRouter = Backbone.Router.extend({
                 hideLoadingIndicator();
                 window.scrollTo(0, 0);
                 for (var i=0; i < response.threads.length; i++) {
-                    var result = routerLink.showThread(response.threads[i], false);
+                    var result = router.showThread(response.threads[i], false);
                     section.append(result[0]);
                     threads[i] = result[1];
                 }
@@ -129,7 +136,7 @@ var MainRouter = Backbone.Router.extend({
                 section.append(paginator.render(response.pages, page, tag).el);
                 return false;
             },
-            error: routerLink.showError,
+            error: router.showError,
         });
         return false;
     },
@@ -162,6 +169,11 @@ var MainRouter = Backbone.Router.extend({
         section.html(response.responseText);
         hideLoadingIndicator();
         return this;
+    },
+
+    receiveMessage: function(message) {
+        alert('hju');
+        return false
     },
 });
 
@@ -233,6 +245,7 @@ function initializeInterface() {
     $(window).resize(adjustAbsoluteElements);
     header.$el.find("#tags_link").hover(showTagList, hideTagList);
     tagList.$el.hover(setMouseOver, hideTagList);
+    header.setCounters(tagList.counters);
 
     Backbone.history.start({pushState: true});
 
@@ -250,6 +263,19 @@ function initializeInterface() {
     $(document).on('click', 'a[href="#"]', function() {
         form.show();
     })
+    if (production == true) {
+        var cometLink = 'http://freeport7.org/comet';
+    } else {
+        var cometLink = 'localhost:3000/comet';
+    }
+    cometClient = new Faye.Client('/comet', {
+        timeout: 120,
+        retry: 5
+    });
+    var countersSubscription = cometClient.subscribe('/counters', function(message) {
+        header.setCounters(message);
+        return false;
+    });
 }
 
 var header = new HeaderView;

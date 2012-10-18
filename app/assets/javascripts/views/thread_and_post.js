@@ -19,7 +19,7 @@ var ThreadView = Backbone.View.extend({
     scrollTo: function() {
         window.scrollTo(0, this.$el.offset().top - 150);
         // window.scrollTo(200, 0);
-        return this;
+        return this;   
     },
 
     callReplyForm: function(event) {
@@ -53,11 +53,11 @@ var ThreadView = Backbone.View.extend({
         date[0] = parseInt(date[0]);
         date[1] = parseInt(date[1]);
         date[2] = parseInt(date[2]);
-        if (today.getDate() == date[2] && today.getMonth() == date[1] 
-            && today.getYear() == date[0]) {
+        if (today.getDate() == date[2] && today.getMonth() == date[1]-1 
+            && today.getFullYear() == date[0]) {
             var t = 'сегодня в ';
-        } else if (today.getDate() == date[2]-1 && today.getMonth() == date[1] 
-            && today.getYear() == date[0]) {
+        } else if (today.getDate()-1 == date[2] && today.getMonth() == date[1]-1
+            && today.getFullYear() == date[0]) {
             var t = 'вчера в ';
         } else {
             var t = date[2] + ' ';
@@ -208,7 +208,7 @@ var PostView = ThreadView.extend({
         return this;
     },
 
-    render: function() {
+    render: function(updateReferences) {
         var url = "/" + this.model.get('thread_rid') + "#i" + this.model.get('rid');
         var t = "<div class='post'>";
         t += "<div class='post_header'>";
@@ -230,6 +230,26 @@ var PostView = ThreadView.extend({
             }
         t += "</div></div>";
         this.el.innerHTML = t;
+        if (updateReferences == true) {
+            var model = this.model
+            $.each(this.$el.find('blockquote .post_link'), function(index, div) {
+                var postId = $(div).find('a').first().attr('href').split('#');
+                postId = postId[postId.length - 1];
+                var post = $('#' + postId);
+                if (post.html != undefined) {
+                    var rids = post.find('.replies_rids').first();
+                    var content = "&gt;&gt;" + model.get('rid');
+                    var link = "<div class='post_link'><a href='/thread/" + model.get('thread_rid');
+                    link += '#i' + model.get('rid') + "'>" + content + "</a></div>";
+                    if (rids.html() == undefined) {
+                        rids = $("<div class='replies_rids'>Ответы: " + link + "</div>");
+                        post.find('blockquote').first().after(rids);
+                    } else if (rids.html().search(content) == -1) {
+                        rids.append(' ' + link);
+                    }
+                }
+            });
+        }
         return this;
     }
 });

@@ -10,11 +10,13 @@ var TagListView = Backbone.View.extend({
 
     render: function() {
         var t = "<a href='/~/' id ='overview_tag'>/~/ Обзор</a><table>"
+        var taglist = this;
         $.ajax({
             type: 'post',
             url: '/utility/get_tags',
             async: false,
             success: function(response) {
+                taglist.counters = response.counters
                 var tags_array = JSON.parse(response.tags);
                 var rows = parseInt(tags_array.length/2) + 1;
                 for (var i = 0; i < rows; i++) {

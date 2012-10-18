@@ -12,7 +12,7 @@ class RPost < ActiveRecord::Base
   before_create do
     self.replies_rids = Array.new
     self.r_thread.replies_count += 1
-    self.r_thread.bump = self.created_at unless self.sage
+    self.r_thread.bump = Time.now
     self.r_thread.save
   end
 
@@ -45,7 +45,8 @@ class RPost < ActiveRecord::Base
     return (self.r_file_id != nil)
   end
 
-  def jsonify(files, thread_rid)
+  def jsonify(files=nil, thread_rid=nil)
+    thread_rid = self.r_thread.rid if thread_rid == nil
     data = {
         rid:            self.rid,
         message:        self.message,
@@ -57,10 +58,14 @@ class RPost < ActiveRecord::Base
         file:           nil,
       }
     if self.has_file?
-      files.each do |file|
-        if file.id == self.r_file_id
-          data[:file] = file.jsonify
-          break
+      if files == nil
+        data[:file] = self.r_file.jsonify
+      else
+        files.each do |file|
+          if file.id == self.r_file_id
+            data[:file] = file.jsonify
+            break
+          end
         end
       end
     end

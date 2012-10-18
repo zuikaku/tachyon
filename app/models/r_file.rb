@@ -17,7 +17,7 @@ class RFile < ActiveRecord::Base
     settings = SettingsRecord.get
     file = params[:file]
     errors = Array.new
-    if file == nil or file.kind_of(String)
+    if file == nil or file.kind_of?(String)
       if (video = params[:video]).empty?
         return nil
       else
@@ -29,7 +29,7 @@ class RFile < ActiveRecord::Base
         req = Net::HTTP::Get.new(url.path)
         res = Net::HTTP.start(url.host, url.port) { |http| http.request(req) }
         if ['Invalid id', 'Video not found'].include?(res.body)
-          errors = << t('errors.bad_video')
+          errors << t('errors.bad_video')
         else
           video_info = Hash.from_xml(res.body)
           video_params = {
@@ -39,7 +39,8 @@ class RFile < ActiveRecord::Base
             md5_hash:       Digest::MD5.hexdigest(video_id),
             extension:      'video'
           }
-          return RFile.create(video_params)
+          record = RFile.create(video_params)
+          return record
         end
       end
     else
@@ -51,7 +52,11 @@ class RFile < ActiveRecord::Base
       end
       return errors unless errors.empty?
       hash = Digest::MD5.hexdigest(file.tempfile.read)
-      return existing.dup.save if (existing = RFile.where(md5_hash: hash).first)
+      if (existing = RFile.where(md5_hash: hash).first)
+        record = existing.dup
+        record.save
+        return record
+      end
       type = file.content_type.split('/')[1]
       type = 'swf' if type == 'x-shockwave-flash'
       type = file.original_filename.split('.')[-1] 
@@ -95,7 +100,8 @@ class RFile < ActiveRecord::Base
         record_params[:thumb_columns] = 128
         record_params[:thumb_rows]    = 128
       end
-      return RFile.create(record_params)
+      record = RFile.create(record_params)
+      return record
     end
     return errors
   end

@@ -11,11 +11,6 @@ var ThreadModel = Backbone.Model.extend({
         this.posts = new PostsCollection(posts);
         return this;
     },
-
-    testing: function() {
-        alert('tis')
-        return this;
-    }
 });
 
 var PostModel = ThreadModel.extend({

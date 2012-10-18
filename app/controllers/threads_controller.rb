@@ -33,6 +33,10 @@ class ThreadsController < ApplicationController
     show_page(page_number)
   end
 
+  def reply
+    process_post
+  end
+
   private
   def build_thread(rid)
     minimal = (params[:action] != 'show')
@@ -126,6 +130,7 @@ class ThreadsController < ApplicationController
         file_result = RFile.validate(params)
         if file_result.kind_of?(RFile)
           @post.r_file_id = file_result.id
+          @file = file_result
         elsif file_result.kind_of?(Array)
           @response[:errors] += file_result
         end
@@ -142,14 +147,14 @@ class ThreadsController < ApplicationController
       if processing_thread?
         checking = @ip.last_thread
         limit = @settings.thread_posting_speed
-        if (@thread = RThread.get_by_rid(params[:rid].to+i))
+      else
+        checking = @ip.last_post
+        limit = @settings.reply_posting_speed
+        if (@thread = RThread.get_by_rid(params[:rid].to_i))
           @post.r_thread_id = @thread.id
         else
           return not_found
         end
-      else
-        checking = @ip.last_post
-        limit = @settings.reply_posting_speed
       end
       delta = Time.now - checking
       @response[:errors] << t('errors.posting_too_fast') if delta.to_i < limit
@@ -165,16 +170,32 @@ class ThreadsController < ApplicationController
     if @response[:errors].empty?
       @post.rid = IdCounter.get_next_rid(processing_thread?)
       @post.ip_id = @ip.id
-      @tags.each { |tag| @post.tags << tag }
-      @post.save
-      if processing_thread? and RThread.count > @settings.max_threads
-        RThread.order('bump DESC').last.destroy 
+      if processing_thread?
+        @tags.each { |tag| @post.tags << tag }
+      else
+        Rails.cache.delete("t/#{@thread.rid}/f") 
+        Rails.cache.delete("t/#{@thread.rid}/m") 
+        RThread.order('bump DESC').last.destroy if RThread.count > @settings.max_threads
       end
+      @post.message = parse(@post.message)
+      @post.save
       if (post_count = Rails.cache.read('post_count'))
         Rails.cache.write('post_count', post_count + 1)
       end
+      CometController.publish('/counters', get_counters)
+      unless processing_thread?
+        post_json = @post.jsonify([@file], @thread.rid)
+        CometController.publish('/live', post_json)
+        CometController.publish("/thread/#{@thread.rid}", post_json)
+      else
+        post_json = @post.jsonify([@file])
+        CometController.publish('/live', post_json)
+        @response[:thread] = post_json
+      end
+      @response[:status] = 'success'
       @ip.update_last(@post)
     end
+    @response[:status] = 'fail' unless @response[:errors].empty?
     respond!
   end
 end
