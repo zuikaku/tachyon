@@ -6,10 +6,7 @@ class RThread < ActiveRecord::Base
   belongs_to              :ip
 
   serialize :replies_rids, Array
-
-  validates_length_of   :message,   maximum: 5000
-  validates_length_of   :title,     maximum: 60
-  validates_length_of   :password,  maximum: 50
+  validates_with TachyonMessageValidator
 
   before_create do
     self.bump = Time.now

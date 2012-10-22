@@ -65,7 +65,7 @@ class RFile < ActiveRecord::Base
       end
       path = "#{Rails.root}/public/files"
       Dir::mkdir(path) unless File.directory?(path)
-      filename = Time.now.to_i.to_s + rand(1..9).to_s + '.fp7'
+      filename = 'fp7-' + Time.now.to_i.to_s + rand(1..9).to_s
       path += "/#{filename}"
       thumb = "#{path}s.#{type}"
       path += ".#{type}"
@@ -107,7 +107,7 @@ class RFile < ActiveRecord::Base
   end
 
   def picture?
-    %w( png jpeg gif ).include?(self.extension)
+    %w( png jpeg gif jpg bmp ).include?(self.extension)
   end
 
   def video?

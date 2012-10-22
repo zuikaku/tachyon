@@ -4,6 +4,7 @@ class ApplicationController < ActionController::Base
   protect_from_forgery
 
   before_filter do
+    return render(text: 'pisya', status: 403) unless verified_request?
     unless params[:controller] == 'captcha'
       return render('index') if request.get? and request.headers["REQUEST_PATH"] != "/"
       @ip = Ip.get(request.remote_ip.to_s)
@@ -24,7 +25,7 @@ class ApplicationController < ActionController::Base
   def get_tags
     @response[:tags] = Tag.all.to_json 
     @response[:counters] = get_counters
-    set_captcha
+    # set_captcha
     respond!
   end
 

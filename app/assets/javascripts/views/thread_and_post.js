@@ -7,6 +7,7 @@ var ThreadView = Backbone.View.extend({
         "mouseout  .file_container":    "hideFileInfo",
         "click .qr_link":               "callReplyForm",
         "click .post_header .post_link": "callReplyForm",
+        "click .file_container img":           "showPicture",
     },
 
     initialize: function(attributes, model, full, formLink) {
@@ -14,6 +15,13 @@ var ThreadView = Backbone.View.extend({
         this.formLink = formLink,
         this.full = full;
         return this;
+    },
+
+    showPicture: function(event) {
+        var file = this.model.get('file');
+        var img = this.$el.find(".file_container img").first();
+        alert(file.url_full);
+        img.attr('src', file.url_full);
     },
 
     scrollTo: function() {
@@ -78,16 +86,16 @@ var ThreadView = Backbone.View.extend({
 
     renderFileContainer: function(file) {
         t = "<div class='file_container'>";
-        t += "<a target='_blank' href='" + file.url_full + "' ";
-            if (file.extension == 'video') {
-                t += "class='video_url' id='" + file.filename + "'>";
-            } else {
-                if (file.is_picture == true) {
-                    t += "class='pic_url'>";
-                } else {
-                    t += "class='non_pic_url'>";
-                }
-            }
+        // t += "<a target='_blank' href='" + file.url_full + "' ";
+        //     if (file.extension == 'video') {
+        //         t += "class='video_url' id='" + file.filename + "'>";
+        //     } else {
+        //         if (file.is_picture == true) {
+        //             t += "class='pic_url'>";
+        //         } else {
+        //             t += "class='non_pic_url'>";
+        //         }
+        //     }
             t += "<img src='" + file.url_small + "' ";
             if (file.thumb_rows != null) {
                 t += "width=" + file.thumb_columns;
@@ -97,7 +105,7 @@ var ThreadView = Backbone.View.extend({
                 t += " height=" + 240;
             }
             t += "/>";
-        t += "</a>";
+        // t += "</a>";
         t += "<span class='file_info'>";
             if (file.extension == 'video' && file.video_title != null) {
                 t += "Видео: &laquo;<a href='" + file.url_full;

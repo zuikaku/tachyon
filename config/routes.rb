@@ -9,6 +9,7 @@ Tachyon::Application.routes.draw do
 
   match 'thread/:rid' => 'threads#show', constraints: { rid: /\d+/ }
   match 'thread/:rid/reply' => 'threads#reply', constraints: { rid: /\d+/ }
+  match 'create' => 'threads#create'
   match ':tag' => 'threads#index'
   match ':tag/page/:page' => 'threads#page', constraints: { page: /\d+/ }
   match '*path' => 'application#index';

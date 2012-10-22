@@ -10,6 +10,7 @@
 //= require views/paginator
 //= require views/taglist
 //= require views/thread_and_post
+//= require views/bottom_menu
 
 
 
@@ -21,7 +22,8 @@ $(document).ready(function() {
 
 var threadsCollection, section, controller, action,
 mouseOverElement, loadingTimeout, previousPath, cometClient,
-cometSubscription = null;
+cometSubscription, postPreviews, mainContainer, loadingIndicator,
+router, form, paginator, bottomMenu = null;
 
 var MainRouter = Backbone.Router.extend({
     routes: {
@@ -35,12 +37,17 @@ var MainRouter = Backbone.Router.extend({
     }, 
 
     before: function(response) {
+        form.hide();
         header.$el.find(".active").removeClass('active');
         tagList.$el.find(".selected").removeClass('selected');
         if (response.status == 'not found') {
             this.notFound();
             return false;
         }
+        if (cometSubscription != null) {
+            cometSubscription.cancel();
+            cometSubscription = null;
+        }   
         return true;
     },
 
@@ -71,6 +78,7 @@ var MainRouter = Backbone.Router.extend({
                 if (router.before(response) == false) {
                     return false;
                 }
+                form.targetOn('reply', rid);
                 section.html('');
                 hideLoadingIndicator();
                 window.scrollTo(0, 0);
@@ -83,17 +91,7 @@ var MainRouter = Backbone.Router.extend({
                 }
                 section.append(backLink);
                 checkHash();
-                if (cometSubscription != null) {
-                    cometSubscription.cancel();
-                }
-                cometSubscription = cometClient.subscribe('/thread/' + rid, function(message) {
-                    var post = new PostModel(message);
-                    threadsCollection.first().posts.add(new PostModel(message));
-                    var newPostView = new PostView({id: 'i' + post.get('rid')}, post, form);
-                    post.view = newPostView;
-                    $('#thread_container').append(newPostView.render(true).el);
-                    return false;
-                });
+                cometSubscription = cometClient.subscribe('/thread/' + rid, router.addPost);
                 return false;
             },
             error: router.showError,
@@ -116,6 +114,7 @@ var MainRouter = Backbone.Router.extend({
                 if (router.before(response) == false) {
                     return false;
                 }
+                form.targetOn('create');
                 if (tag == '~') {
                     tag_selector = "overview_tag";
                 } else {
@@ -145,6 +144,7 @@ var MainRouter = Backbone.Router.extend({
         var thread = new ThreadModel(thread_json);
         var attrs = {id: 'i' + thread.get('rid')};
         var view = new ThreadView(attrs, thread, full, form);
+        thread.view = view;
         if (full == true) {
             var container = $("<div id='thread_container'></div>");
         } else {
@@ -157,6 +157,16 @@ var MainRouter = Backbone.Router.extend({
             container.append(viewPost.render().el);
         });
         return [container, thread];
+    },
+
+    addPost: function(post_json) {
+        var post = new PostModel(post_json);
+        var thread = threadsCollection.where({rid: post.get('thread_rid')})[0];
+        thread.posts.add(post);
+        var newPostView = new PostView({id: 'i' + post.get('rid')}, post, form);
+        post.view = newPostView;
+        thread.view.$el.parent().append(newPostView.render(true).el);
+        return false;
     },
 
     notFound: function() {
@@ -234,10 +244,10 @@ function checkHash() {
 
 /////////////////////////////////////////////////////////////////////
 
-
 function initializeInterface() {
-    mainContainer.append(header.el)
     mainContainer.append(tagList.el);
+    mainContainer.append(header.el);
+    mainContainer.append(bottomMenu.el);
     mainContainer.append(form.el);
     section = $("<section id='container'></section>");
     mainContainer.append(section).append('<footer>Tachyon ' + VERSION + '</footer>');
@@ -259,15 +269,6 @@ function initializeInterface() {
             router.navigate(href, {trigger: true});
         }
     });
-    
-    $(document).on('click', 'a[href="#"]', function() {
-        form.show();
-    })
-    if (production == true) {
-        var cometLink = 'http://freeport7.org/comet';
-    } else {
-        var cometLink = 'localhost:3000/comet';
-    }
     cometClient = new Faye.Client('/comet', {
         timeout: 120,
         retry: 5
@@ -280,11 +281,17 @@ function initializeInterface() {
 
 var header = new HeaderView;
 var tagList = new TagListView;
-var mainContainer = $('#main_container');
-var loadingIndicator = $("#loading");
-var router = new MainRouter;
-var form = new FormView;
-var paginator = new PaginatorView;
-
-initializeInterface();
+if (tagList.gotTags == true) {
+    mainContainer = $('#main_container');
+    loadingIndicator = $("#loading");
+    router = new MainRouter;
+    form = new FormView;
+    form.router = router;
+    bottomMenu = new BottomMenuView;
+    bottomMenu.form = form;
+    form.menu = bottomMenu;
+    paginator = new PaginatorView;
+    initializeInterface();
+    return false;
+}
 });

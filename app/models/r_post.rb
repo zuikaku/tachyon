@@ -1,19 +1,48 @@
+# coding: utf-8
+
+class TachyonMessageValidator < ActiveModel::Validator
+  def validate(record)
+    record.errors[:message] << I18n.t('errors.message_too_long') if record.message.length > 5000
+    record.errors[:title] << I18n.t('errors.title_too_long') if record.title.length > 60
+    # record.errors[:password] << I18n.t('errors.password_too_long') if record.password.length > 100
+    regexp = /(\w|[й,ц,у,к,е,н,г,ш,щ,з,х,ъ,ф,ы,в,а,п,р,о,л,д,ж,э,я,ч,с,м,и,т,ь,б,ю])+/
+    message_present = !record.message.scan(regexp).empty?
+
+    if message_present or record.has_file?
+      if record.kind_of?(RThread)  
+        record.errors[:base] << I18n.t('errors.no_message') unless message_present
+        if record.new_record?
+          record.errors[:base] << I18n.t('errors.no_file') unless record.has_file? 
+        end
+      end
+    else
+      record.errors[:base] << I18n.t('errors.no_content') 
+    end
+  end
+end
+
+
+
 class RPost < ActiveRecord::Base
   belongs_to  :r_thread
   belongs_to  :r_file
   belongs_to  :ip
 
   serialize :replies_rids, Array
-
-  validates_length_of :message,     maximum: 5000
-  validates_length_of :title,       maximum: 60
-  validates_length_of :password,    maximum: 50
+  validates_with TachyonMessageValidator
 
   before_create do
-    self.replies_rids = Array.new
-    self.r_thread.replies_count += 1
-    self.r_thread.bump = Time.now
-    self.r_thread.save
+    thread = self.r_thread
+    thread.replies_count += 1
+    thread.bump = Time.now
+    thread.save
+    Rails.cache.delete("t/#{thread.rid}/f") 
+    Rails.cache.delete("t/#{thread.rid}/m")
+    if (post_count = Rails.cache.read('post_count'))
+      posts = RPost.where(created_at: Time.now.at_midnight..Time.now).count
+      posts += RThread.where(created_at: Time.now.at_midnight..Time.now).count 
+      Rails.cache.write("post_count", posts)
+    end
   end
 
   before_destroy do

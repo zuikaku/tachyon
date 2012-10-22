@@ -23,7 +23,7 @@ a
   &:hover
     color: #06f
 
-header a, #taglist a 
+header a, #taglist a
   color: inherit
   text-decoration: none
   &:hover, &.active, &.selected
@@ -129,7 +129,7 @@ footer
     margin-top: 0
     font-size: 16px
 
-#bottom_menu, #qr_form, #taglist, .manage_menu, #loading
+#bottom_menu, #qr_form, #taglist, .manage_menu, #loading, #img_preview
   background: #222
   color: white
   opacity: 0.9
@@ -143,7 +143,7 @@ footer
   width: 600px
   color: white
   position: fixed
-  bottom: 0
+  bottom: 28
   right: -750
   z-index: 10
   padding: 5px 25px 5px 15px
@@ -157,7 +157,7 @@ footer
   .mini
     font-size: 14px
     color: #aaa
-  .password_field
+  #form_password
     width: 50px
   #sage
     margin-right: 20px
@@ -185,7 +185,7 @@ footer
       cursor: default
   #form_tags
     display: none
-  .form_title
+  #form_title
     float: left
     width: 80%
   .form_submit
@@ -202,12 +202,12 @@ footer
     height: 200px
     max-height: 200px
     color: white
-  .file_field, .video_field
+  #file_field, #video_field
     border: none
     max-width: 210px    
     margin-left: 10px
     height: 30px
-  .video_field 
+  #video_field 
     display: none
     border-bottom: 1px solid #aaa
   .editbox
@@ -380,25 +380,33 @@ footer
       color: #888
   .post_header
     margin-bottom: 5px
-    font-size: 14px
+    font-size: 12px
     padding-bottom: 0
     color: #666
     background: none
     span 
-      margin-right: 10px
+      margin-right: 5px
+      &.sage
+        color: red
+        margin-left: 15px
+        font-weight: bold
       a, a:visited
         color: #444
         &:hover
           text-decoration: none
           color: #777
 
-#loading 
+#loading, #form_loading
   position: fixed
   top: 45%
   display: block
   padding: 10px
   z-index: 15
   left: 48%
+
+#form_loading
+  position: absolute
+  left: 45%
 
 
 #paginator
@@ -418,3 +426,24 @@ footer
       &:hover
         text-decoration: none
 
+#img_preview 
+  position: fixed 
+  padding: 5px
+  opacity: 1
+
+.errors
+  color: red
+
+#bottom_menu
+  position: fixed
+  font-size: 14px
+  bottom: -5px
+  right: -5px
+  padding: 10px
+  padding-top: 5px
+  z-index: 9001
+  span
+    cursor: pointer
+    margin-right: 10px
+    &:hover
+      text-shadow: 0 0 0.2em #fff

@@ -2,6 +2,7 @@ var TagListView = Backbone.View.extend({
     tagName:    'div',
     id:         'taglist',
     el:         '',
+    gotTags:    false,
 
     initialize: function() {
         _.bindAll(this, 'render');
@@ -34,6 +35,7 @@ var TagListView = Backbone.View.extend({
                     t += "</tr>";
                 }
                 t += "</table>";
+                taglist.gotTags = true;
                 return false;
             },
         });
