@@ -3,49 +3,89 @@ var ThreadView = Backbone.View.extend({
     className:  'thread',
 
     events:     {
-        "mouseover .file_container":    "showFileInfo",
-        "mouseout  .file_container":    "hideFileInfo",
-        "click .qr_link":               "callReplyForm",
+        "mouseenter .file_container":     "showFileSearch",
+        "mouseleave  .file_container":     "hideFileSearch",
         "click .post_header .post_link": "callReplyForm",
-        "click .file_container img":           "showPicture",
+        "click .pic_url":                "showPicture",
+        "click .omitted a":              "expand",
+        "mouseenter blockquote .post_link, .replies_rids .post_link, .proofmark, .context_link": 'showPreview',
+        "mouseleave blockquote .post_link, .replies_rids .post_link, .proofmark, .context_link":  'previewLinkOut',
     },
 
-    initialize: function(attributes, model, full, formLink) {
+    initialize: function(attributes, model, full) {
         this.model = model;
-        this.formLink = formLink,
         this.full = full;
         return this;
     },
 
+    showPreview: function(event) {
+        return previews.showPreview(event, this.model.get('rid'));
+    },
+
+    previewLinkOut: function(event) {
+        return previews.previewLinkOut(event);
+    },
+
     showPicture: function(event) {
         var file = this.model.get('file');
-        var img = this.$el.find(".file_container img").first();
-        alert(file.url_full);
-        img.attr('src', file.url_full);
+        if (file == null) {
+            return true;
+        }
+        if (file.thumb_columns == null) {
+            return true;
+        } else {
+            if (event != undefined) {
+                event.preventDefault();
+            }
+            var img = this.$el.find(".file_container img").first();
+            if (img.attr('src') == file.url_small) {
+                img.attr('width', file.columns);
+                img.attr('height', file.rows);
+                img.attr('src', file.url_full);
+            } else {
+                img.attr('width', file.thumb_columns);
+                img.attr('height', file.thumb_rows);
+                img.attr('src', file.url_small);
+            }
+            return false;
+        }
+    },
+
+    showAllPictures: function() {
+        this.showPicture();
+        this.model.posts.each(function(post) {
+            post.view.showPicture();
+        });
+        return false;
     },
 
     scrollTo: function() {
-        window.scrollTo(0, this.$el.offset().top - 150);
-        // window.scrollTo(200, 0);
+        // window.scrollTo(0, this.$el.offset().top - 150);
+        $.scrollTo(this.$el, 200, {offset: {top: -200}});
         return this;   
     },
 
     callReplyForm: function(event) {
         event.preventDefault();
-        var parentID = this.model.get('thread_rid');
+        var paretID = this.model.get('thread_rid');
         if (parentID == undefined) {
             parentID = this.model.get('rid');
         }
-        this.formLink.show(this.model.get('rid'), parentID, 'reply');
+        form.show(this.model.get('rid'), parentID, 'reply');
         return false;
     },
 
-    showFileInfo: function(event) {
-        $(event.currentTarget).find('.file_info').css('display', 'block');
+    showFileSearch: function(event) {
+        var t = "<span class='file_search'>";
+            t += "Поиск: гугл хуюгл";
+        t += "</span>"
+        $(event.currentTarget).append(t);
+        return false;
     },
 
-    hideFileInfo: function(event) {
-        $(event.currentTarget).find('.file_info').css('display', 'none');
+    hideFileSearch: function(event) {
+        $('.file_search').remove();
+        return false;
     },
 
     renderDateTime: function(datetime) {
@@ -84,18 +124,83 @@ var ThreadView = Backbone.View.extend({
         return t;
     },
 
+    expand: function(event) {
+        event.preventDefault();
+        var thread = this;
+        var container = thread.$el.parent();
+        if (event.currentTarget.innerHTML == 'свернуть тред') {
+            for (var i=0; i < thread.posts.length; i++) {
+                if (i < thread.posts.length - 6) {
+                    thread.posts.at(i).view.$el.remove();
+                    delete thread.posts.at(i).view;
+                    delete thread.posts.at(i);
+                }
+            }
+            event.currentTarget.innerHTML = thread.verboseOmitted(thread.posts.length - 6);
+            event.currentTarget.innerHTML += ' спустя:';
+        } else {
+            event.currentTarget.innerHTML = 'загружаем...';
+            $.ajax({
+                type: 'post',
+                url: '/thread/' + this.model.get('rid') + '/expand',
+                success: function(response) {
+                    delete thread.posts;
+                    container.find('.post_container').remove();
+                    thread.posts = new PostsCollection;
+                    event.currentTarget.innerHTML = 'свернуть тред';
+                    for (var i=0; i < response.posts.length; i++) {
+                        var post = new PostModel(response.posts[i]);
+                        post.view = new PostView({id: 'i' + post.get('rid')}, post);
+                        thread.posts.add(post);
+                        container.append(post.view.render().el);
+                    }
+                    return false;
+                },
+                error: function() {
+                    alert("Неизвестная ошибка. Проверьте соединение.")
+                    return false;
+                }
+            })
+        }
+        return false;
+    },
+
+    renderFileInfo: function(file) {
+        var t = "<span class='file_info'>";
+        if (file.extension == 'video' && file.video_title != null) {
+            t += "Видео: &laquo;<a href='" + file.url_full;
+            t += "' target='_blank'>" + file.video_title + "</a>&raquo; ";
+            var minutes = parseInt(file.video_duration / 60);
+            var seconds = parseInt(file.video_duration - (minutes*60));
+            if (seconds < 10) {
+                seconds = "0" + seconds;
+            }
+            t += minutes + ":" + seconds;
+        } else {
+            t += "Файл: <a href='"  + file.url_full + "' ";
+            t += "target='_blank'>" + file.extension + "</a> ";
+            t += parseInt(file.size / 1024) + " kb.";
+            if (file.is_picture == true) {
+                t += " &mdash; " + file.columns + "×";
+                t += file.rows;
+            }
+        }
+        t += "</span>";
+        return t;
+    },
+
     renderFileContainer: function(file) {
-        t = "<div class='file_container'>";
-        // t += "<a target='_blank' href='" + file.url_full + "' ";
-        //     if (file.extension == 'video') {
-        //         t += "class='video_url' id='" + file.filename + "'>";
-        //     } else {
-        //         if (file.is_picture == true) {
-        //             t += "class='pic_url'>";
-        //         } else {
-        //             t += "class='non_pic_url'>";
-        //         }
-        //     }
+        var t = "<div class='file_container'>";
+        t += "<a target='_blank' href='" + file.url_full + "' ";
+            if (file.extension == 'video') {
+                t += "class='video_url' id='" + file.filename + "'>";
+            } else {
+                if (file.is_picture == true) {
+                    t += "class='pic_url'>";
+                } else {
+                    t += "class='non_pic_url'>";
+                }
+            }
             t += "<img src='" + file.url_small + "' ";
             if (file.thumb_rows != null) {
                 t += "width=" + file.thumb_columns;
@@ -105,32 +210,13 @@ var ThreadView = Backbone.View.extend({
                 t += " height=" + 240;
             }
             t += "/>";
-        // t += "</a>";
-        t += "<span class='file_info'>";
-            if (file.extension == 'video' && file.video_title != null) {
-                t += "Видео: &laquo;<a href='" + file.url_full;
-                t += "' target='_blank'>" + file.video_title + "</a>&raquo; ";
-                var minutes = parseInt(file.video_duration / 60);
-                var seconds = parseInt(file.video_duration - (minutes*60));
-                if (seconds < 10) {
-                    seconds = "0" + seconds;
-                }
-                t += minutes + ":" + seconds;
-            } else {
-                t += "Файл: <a href='"  + file.url_full + "' ";
-                t += "target='_blank'>" + file.extension + "</a> ";
-                t += parseInt(file.size / 1024) + " kb.";
-                if (file.is_picture == true) {
-                    t += " &mdash; " + file.columns + "×";
-                    t += file.rows;
-                }
-            }
-        t += "</span></div>";
+        t += "</a>";
+        t += "</div>";
         return t;
     },
 
     renderRepliesRids: function(rids) {
-        t = "<div class='replies_rids'>";
+        var t = "<div class='replies_rids'>";
             t += "Ответы: ";
             for (var i = 0; i < rids.length; i++) {
                 t += "<div class='post_link'>";
@@ -142,25 +228,37 @@ var ThreadView = Backbone.View.extend({
         return t;
     },
 
+    verboseOmitted: function(number) {
+        var result = number + ' пост';
+        var mod = number % 10;
+        var mod2 = number % 100;
+        if ((mod >= 2 && mod <= 4) && !(mod2 >= 12 && mod2 <= 14)) {
+            result += 'а';
+        } else if (mod != 1 || number == 11) {
+            result += 'ов';
+        }
+        return result;
+    }, 
+
     render: function() {
         var t = "<div class='thread_body'>";
             if (this.model.get('file') != null) {
+                t += this.renderFileInfo(this.model.get('file'));
                 t += this.renderFileContainer(this.model.get('file'));
             }
-            t += "<a href='/thread/" + this.model.get('rid') + "' class='title'>";
-                if (this.model.get('title') == '') {
-                    t += "Тред №" + this.model.get('rid');
-                } else {
-                    t += this.model.get('title');
-                }
-            t += "</a><a href='#' title='Добавить в избранное' class='fav_button'>";
+            var url = '/thread/' + this.model.get('rid'); 
+            t += "<a href='" + url + "' class='post_link'>##" + this.model.get('rid');
+            t += "</a>";
+            if (this.model.get('title') != '') {
+                t += "<a href='/thread/" + this.model.get('rid') + "' class='title'>";
+                t += this.model.get('title');
+                t += "</a>";
+            }
+            t += "<a href='#' title='Добавить в избранное' class='fav_button'>";
                 t += "<img src='/assets/ui/star_black.png' />";
             t += "</a>";
             t += "</a><a href='#' title='Скрыть' class='hide_button'>";
                 t += "<img src='/assets/ui/hide.png' />";
-            t += "</a>";
-            t += "</a><a href='#' title='Быстрый ответ' class='qr_link'>";
-                t += "<img src='/assets/ui/reply.png' />";
             t += "</a>";
             t += "<span class='thread_info'>";
                 t += this.renderDateTime(this.model.get('created_at')) + ', ';
@@ -183,8 +281,9 @@ var ThreadView = Backbone.View.extend({
         t += "</div>";
         if (this.model.posts != undefined) {
             if (this.full != true && this.model.get('replies_count') > this.model.posts.length) {
-                t += "<div class='omitted'>" + (this.model.get('replies_count') - 6);
-                t += " постов спустя:</div>";
+                t += "<div class='omitted'><a href='#' title='развернуть тред'>" 
+                t += this.verboseOmitted(this.model.get('replies_count') - 6);
+                t += " спустя:</a></div>";
             }
         }
         this.el.innerHTML = t;
@@ -200,9 +299,9 @@ var PostView = ThreadView.extend({
     className:  'post_container',
     el:         '',
 
-    initialize: function(attributes, model, formLink) {
+    initialize: function(attributes, model) {
         this.model = model;
-        this.formLink = formLink;
+        this.$previews = $('#previews').first();
         return this;
     },
 
@@ -217,7 +316,7 @@ var PostView = ThreadView.extend({
     },
 
     render: function(updateReferences) {
-        var url = "/" + this.model.get('thread_rid') + "#i" + this.model.get('rid');
+        var url = "/thread/" + this.model.get('thread_rid') + "#i" + this.model.get('rid');
         var t = "<div class='post'>";
         t += "<div class='post_header'>";
             t += "<span><a href='" + url + "' class='post_link'>";
@@ -226,6 +325,9 @@ var PostView = ThreadView.extend({
             t += "<span class='date'>" + this.renderDateTime(this.model.get('created_at')) + "</span>";
             if (this.model.get('sage') == true) {
                 t += "<span class='sage'>sage</span>";
+            }
+            if (this.model.get('file') != null) {
+                t += this.renderFileInfo(this.model.get('file'));  
             }
         t += "</div>";
         t += "<div class='post_body'>";

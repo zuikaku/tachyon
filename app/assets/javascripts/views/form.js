@@ -12,6 +12,7 @@ var FormView = Backbone.View.extend({
         "click #file_span":     "toggleFileOrVideo",
         "click #video_span":    "toggleFileOrVideo",
         'submit':               'ajaxSubmit',
+        'click .editbox b, i, u, s, span, a': 'markup',
     },
 
     initialize: function() {
@@ -22,7 +23,6 @@ var FormView = Backbone.View.extend({
     ajaxSubmit: function(event) {
         event.preventDefault();
         this.toggleLoading('on');
-        var form = this;
         var data = new FormData();
         data.append('message[message]',  this.$el.find('textarea').first().val());
         data.append('message[title]',    this.$el.find('#form_title').first().val());
@@ -52,13 +52,16 @@ var FormView = Backbone.View.extend({
                 if (response.status == 'success') {
                     form.clear().hide();
                     if (response.post != undefined) {
-                        form.router.addPost(response.post);
+                        router.addPost(response.post, true);
                     } else if (response.thread_rid != undefined) {
-                        form.router.navigate('/thread/' + response.thread_rid, {trigger: true});
+                        router.navigate('/thread/' + response.thread_rid, {trigger: true});
                     }
                 } else {
                     for (i=0; i < response.errors.length; i++) {
                         errors.append(response.errors[i]);
+                        if (i != response.errors.length-1) {
+                            errors.append('<br />');
+                        }
                     }
                 }
                 return false;
@@ -94,15 +97,15 @@ var FormView = Backbone.View.extend({
                 var loading = $("<img src='/assets/ui/loading.gif' id='form_loading' />");
                 loading.css('opacity', 0);
                 form.$el.append(loading);
-                loading.animate({opacity: 1}, 400);
-                form.$el.find('.divider').animate({opacity: 0.4}, 400);
-            }, 400);
+                loading.css('opacity', 1);
+                form.$el.find('.divider').css('opacity', 0.4);
+            }, 500);
         }
         return this;
     },
 
     show: function(postRid, threadRid, what) {
-        this.menu.setButtonValue('закрыть форму');
+        bottomMenu.setButtonValue('закрыть форму');
         if (what != 'reply') {
             what = 'create';
         }
@@ -128,7 +131,7 @@ var FormView = Backbone.View.extend({
 
     hide: function() {
         this.$el.animate({right: -(this.$el.width() + 50)}, 400);
-        this.menu.setButtonValue('previous');
+        bottomMenu.setButtonValue('previous');
         return this;
     },
 
@@ -145,8 +148,8 @@ var FormView = Backbone.View.extend({
             this.toggleTagsOrSage('sage');
             var menuValue = 'ответить';
         }
-        if (this.menu.$button.html() != 'закрыть форму') {
-            this.menu.setButtonValue(menuValue);
+        if (bottomMenu.$button.html() != 'закрыть форму') {
+            bottomMenu.setButtonValue(menuValue);
         }
         return this;
     },
@@ -179,6 +182,40 @@ var FormView = Backbone.View.extend({
             this.$el.find('#form_tags').first().css('display', 'inline-block');
         }
         return this;
+    },
+
+    markup: function(event) {
+        var clicked = $(event.currentTarget);
+        var textarea = this.$el.find('textarea').first();
+        var insertMarkup = function(start, end) {
+            var initialValue = textarea.val();
+            var section = textarea.getSelection();
+            var left = initialValue.substring(0, section.start);
+            var right = initialValue.substring(section.end, initialValue.length);
+            section.text = section.text.replace(/\n/mg, end + '\n' + start);
+            textarea.val(left + start + section.text + end + right);
+            var caret = section.end + start.length;
+            textarea.focus().caret(caret, caret);
+            return false;
+        }
+        if (clicked.is('b')) {
+            insertMarkup('**', '**');
+        } else if (clicked.is('i')) {
+            insertMarkup('*', '*');
+        } else if (clicked.is('u')) {
+            insertMarkup('__', '__');
+        } else if (clicked.is('s')) {
+            insertMarkup('_', '_');
+        } else if (clicked.is('span')) {
+            if (clicked.hasClass('spoiler')) {
+                insertMarkup('%%', '%%');
+            } else if (clicked.hasClass('quote')) {
+                insertMarkup('>', '');
+            }
+        } else if (clicked.is('a')) {
+            alert('hui');
+        }
+        return false;
     },
 
     render: function() {

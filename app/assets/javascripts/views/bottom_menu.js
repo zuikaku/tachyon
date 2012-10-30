@@ -20,12 +20,12 @@ var BottomMenuView = Backbone.View.extend({
 
     callReplyForm: function() {
         if (this.$button.html() == 'закрыть форму') {
-            this.form.hide();
+            form.hide();
         } else {
             if (this.$button.html() == 'ответить') {
-                this.form.show(undefined, null, 'reply'); 
+                form.show(undefined, null, 'reply'); 
             } else {
-                this.form.show(undefined, undefined, 'create');
+                form.show(undefined, undefined, 'create');
             }
         }
         return this;

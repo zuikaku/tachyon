@@ -11,3 +11,4 @@ Encoding.default_internal = Encoding::UTF_8
 
 # Initialize the rails application
 Tachyon::Application.initialize!
+Rails.cache.clear

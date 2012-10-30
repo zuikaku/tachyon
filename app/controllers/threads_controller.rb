@@ -13,7 +13,7 @@ class ThreadsController < ApplicationController
     thread_rid = RThread.connection.select_all("SELECT r_threads.rid 
         FROM r_threads WHERE r_threads.rid = #{rid} LIMIT 1")
     if thread_rid.empty?
-      not_found
+      return not_found
     else
       data = Rails.cache.read("t/#{rid}/f")
       data = build_thread(rid) unless data
@@ -41,9 +41,30 @@ class ThreadsController < ApplicationController
     process_post
   end
 
+  def expand
+    if (thread = RThread.get_by_rid(params[:rid].to_i))
+      data = Rails.cache.read("t/#{thread.rid}/f")
+      data = build_thread(thread.rid) unless data
+      @response[:posts] = data[:posts]
+    else
+      @response[:status] = 'fail'
+      @response[:errors] = ['thread not found']
+    end
+    respond!
+  end
+
+  def get_post
+    post = RPost.get_by_rid(params[:rid])
+    post = RThread.get_by_rid(params[:rid]) unless post
+    @response[:post] = post.jsonify if post 
+    respond!
+  end
+
+  ###############################################################
+
   private
   def build_thread(rid)
-    minimal = (params[:action] != 'show')
+    minimal = ! ['show', 'expand'].include?(params[:action])
     thread = RThread.get_by_rid(rid)
     if minimal
       posts = thread.last_posts.reverse
@@ -114,7 +135,7 @@ class ThreadsController < ApplicationController
 
     def validate_content
       @post.r_file_id = 0 unless params[:file].kind_of?(String) and params[:video].empty?
-      if @post.invalid? # TODO: дописать валидации в модель
+      if @post.invalid? 
         @post.errors.to_hash.each_value do |array|
           array.each { |error| @response[:errors] << error }
         end
@@ -177,9 +198,9 @@ class ThreadsController < ApplicationController
     if @response[:errors].empty?
       @post.rid = IdCounter.get_next_rid(processing_thread?)
       @post.ip_id = @ip.id
-      @tags.each { |tag| @post.tags << tag } if processing_thread?
       @post.message = parse(@post.message)
       @post.save
+      @tags.each { |tag| @post.tags << tag } if processing_thread?
       CometController.publish('/counters', get_counters)
       unless processing_thread?
         post_json = @post.jsonify([@file], @thread.rid)

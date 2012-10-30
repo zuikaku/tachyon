@@ -3,6 +3,9 @@
 //= require underscore
 //= require backbone
 //= require faye
+//= require fields
+//= require caret
+//= require scrollto
 
 //= require models
 //= require views/form
@@ -11,19 +14,20 @@
 //= require views/taglist
 //= require views/thread_and_post
 //= require views/bottom_menu
+//= require views/previews
 
 
 
 var VERSION = 0.1;
 
-
-
 $(document).ready(function() {
 
-var threadsCollection, section, controller, action,
-mouseOverElement, loadingTimeout, previousPath, cometClient,
-cometSubscription, postPreviews, mainContainer, loadingIndicator,
-router, form, paginator, bottomMenu = null;
+// var section, controller, action,
+// mouseOverElement, loadingTimeout, previousPath, cometClient,
+// cometSubscription, postPreviews, mainContainer, loadingIndicator, 
+// paginator, bottomMenu = null;
+cometSubscription = null;
+previousPath = null;
 
 var MainRouter = Backbone.Router.extend({
     routes: {
@@ -82,14 +86,14 @@ var MainRouter = Backbone.Router.extend({
                 section.html('');
                 hideLoadingIndicator();
                 window.scrollTo(0, 0);
-                result = router.showThread(response.thread, true)
-                section.append(result[0]);
-                threadsCollection = new ThreadsCollection([result[1]]);
-                backLink = $("<a href='/~/' class='back_link'>Назад</a>");
+                var thread = router.buildThread(response.thread, true);
+                section.append(thread.container);
+                threadsCollection = new ThreadsCollection([thread.model]);
+                thread.container.before("<a href='/~/' class='back_link'>← Назад</a>");
+                thread.container.after("<a href='/~/' class='back_link'>← Назад</a>");
                 if (previousPath != null) {
-                    backLink.attr('href', previousPath);
+                    $('.back_link').attr('href', previousPath);
                 }
-                section.append(backLink);
                 checkHash();
                 cometSubscription = cometClient.subscribe('/thread/' + rid, router.addPost);
                 return false;
@@ -116,9 +120,9 @@ var MainRouter = Backbone.Router.extend({
                 }
                 form.targetOn('create');
                 if (tag == '~') {
-                    tag_selector = "overview_tag";
+                    var tag_selector = "overview_tag";
                 } else {
-                    tag_selector = tag;
+                    var tag_selector = tag;
                 }
                 tagList.$el.find("#" + tag_selector).addClass('selected');
                 header.$el.find("#tags_link").addClass('active');
@@ -127,9 +131,9 @@ var MainRouter = Backbone.Router.extend({
                 hideLoadingIndicator();
                 window.scrollTo(0, 0);
                 for (var i=0; i < response.threads.length; i++) {
-                    var result = router.showThread(response.threads[i], false);
-                    section.append(result[0]);
-                    threads[i] = result[1];
+                    var thread = router.buildThread(response.threads[i], false);
+                    section.append(thread.container);
+                    threads[i] = thread.model;
                 }
                 threadsCollection = new ThreadsCollection(threads);
                 section.append(paginator.render(response.pages, page, tag).el);
@@ -140,32 +144,31 @@ var MainRouter = Backbone.Router.extend({
         return false;
     },
 
-    showThread: function(thread_json, full) {
+    buildThread: function(thread_json, full) {
         var thread = new ThreadModel(thread_json);
-        var attrs = {id: 'i' + thread.get('rid')};
-        var view = new ThreadView(attrs, thread, full, form);
-        thread.view = view;
+        thread.view = new ThreadView({id: 'i' + thread.get('rid')}, thread, full);
         if (full == true) {
             var container = $("<div id='thread_container'></div>");
         } else {
             var container = $("<div class='thread_container'></div>");
         }
-        container.append(view.render().el);
+        container.append(thread.view.render().el);
         thread.posts.each(function(post) {
-            var viewPost = new PostView({id: 'i' + post.get('rid')}, post, form);
-            post.view = viewPost;
-            container.append(viewPost.render().el);
+            post.view = new PostView({id: 'i' + post.get('rid')}, post);
+            container.append(post.view.render().el);
         });
-        return [container, thread];
+        return { container: container, model: thread }
     },
 
-    addPost: function(post_json) {
+    addPost: function(post_json, scroll) {
         var post = new PostModel(post_json);
         var thread = threadsCollection.where({rid: post.get('thread_rid')})[0];
         thread.posts.add(post);
-        var newPostView = new PostView({id: 'i' + post.get('rid')}, post, form);
-        post.view = newPostView;
-        thread.view.$el.parent().append(newPostView.render(true).el);
+        post.view = new PostView({id: 'i' + post.get('rid')}, post);
+        thread.view.$el.parent().append(post.view.render(true).el);
+        if (scroll == true) {
+            post.view.scrollTo();
+        }
         return false;
     },
 
@@ -249,6 +252,7 @@ function initializeInterface() {
     mainContainer.append(header.el);
     mainContainer.append(bottomMenu.el);
     mainContainer.append(form.el);
+    mainContainer.append(previews.el);
     section = $("<section id='container'></section>");
     mainContainer.append(section).append('<footer>Tachyon ' + VERSION + '</footer>');
     adjustAbsoluteElements();
@@ -265,7 +269,7 @@ function initializeInterface() {
         click = click && (href.substring(0, 6) != '/files');
         if (click == true) {
             event.preventDefault();
-            previousPath = document.location + document.location.hash;
+            previousPath = document.location.pathname + document.location.hash;
             router.navigate(href, {trigger: true});
         }
     });
@@ -286,11 +290,10 @@ if (tagList.gotTags == true) {
     loadingIndicator = $("#loading");
     router = new MainRouter;
     form = new FormView;
-    form.router = router;
     bottomMenu = new BottomMenuView;
-    bottomMenu.form = form;
-    form.menu = bottomMenu;
     paginator = new PaginatorView;
+    threadsCollection = null;
+    previews = new PreviewsView;
     initializeInterface();
     return false;
 }
