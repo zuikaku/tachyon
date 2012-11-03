@@ -11,13 +11,7 @@ var PreviewsView = Backbone.View.extend({
 
     showPreview: function(event, fromPostId) {
         var link = $(event.currentTarget);
-        var father = link.parent();
-        if (father.is('blockquote') || father.hasClass('replies_rids') 
-            || link.hasClass('context_link')) {
-            this.current = link;
-        } else {
-            return false;
-        }
+        this.current = link;
         var offset = function(element, xy) {
             var c = 0;
             while (element) {
@@ -36,7 +30,7 @@ var PreviewsView = Backbone.View.extend({
             previewY += link.offsetHeight;
         }
         var preview = new Preview;
-        var style = 'position:absolute; z-index:300;';
+        var style = 'position:absolute; z-index:5;';
         if (previewX < screenWidth / 2) {
             style += 'left:' + previewX + 'px; ';
         } else {
@@ -58,7 +52,7 @@ var PreviewsView = Backbone.View.extend({
         }
         preview.timeout = setTimeout(function() {
             previews.getPost(postRid, preview);
-        }, 500);
+        }, 200);
         return false;
     },
 
@@ -70,14 +64,14 @@ var PreviewsView = Backbone.View.extend({
             previews.current = father;
             setTimeout(function() {
                 previews.removePreview(father, true)
-            }, 300);
+            }, 190);
         } else {
             previews.current = null;
             setTimeout(function() {
                 if (previews.current == null) {
                     previews.removePreview('all');
                 }
-            }, 300);
+            }, 190);
         }
         return false;
     },

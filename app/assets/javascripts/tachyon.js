@@ -2,23 +2,24 @@
 //= require jquery_ujs
 //= require underscore
 //= require backbone
-//= require faye
+//= require fayer
 //= require fields
 //= require caret
 //= require scrollto
 
 //= require models
+//= require views/bottom_menu
 //= require views/form
 //= require views/head
 //= require views/paginator
+//= require views/previews
+//= require views/settings
 //= require views/taglist
 //= require views/thread_and_post
-//= require views/bottom_menu
-//= require views/previews
 
 
 
-var VERSION = 0.1;
+var VERSION = 0.3;
 
 $(document).ready(function() {
 
@@ -28,6 +29,10 @@ $(document).ready(function() {
 // paginator, bottomMenu = null;
 cometSubscription = null;
 previousPath = null;
+waitToHighlight = null;
+section = null;
+header = null;
+bottomMenu = null;
 
 var MainRouter = Backbone.Router.extend({
     routes: {
@@ -41,11 +46,17 @@ var MainRouter = Backbone.Router.extend({
     }, 
 
     before: function(response) {
+        controller = null;
+        action = null;
         form.hide();
+        form.setTag('');
         header.$el.find(".active").removeClass('active');
         tagList.$el.find(".selected").removeClass('selected');
         if (response.status == 'not found') {
             this.notFound();
+            return false;
+        } else if (response.status == 'fail') {
+            this.showError(response);
             return false;
         }
         if (cometSubscription != null) {
@@ -78,10 +89,10 @@ var MainRouter = Backbone.Router.extend({
             type:       'post',
             url:        document.location,
             success:    function(response) {
-                controller = 'threads'; action = 'index';
                 if (router.before(response) == false) {
                     return false;
                 }
+                controller = 'threads'; action = 'show';
                 form.targetOn('reply', rid);
                 section.html('');
                 hideLoadingIndicator();
@@ -113,16 +124,19 @@ var MainRouter = Backbone.Router.extend({
         $.ajax({
             type: 'post',
             url:  document.location,
+            data: {amount: settings.get('threads_per_page')},
             success: function(response) {
-                controller = 'threads'; action = 'index';
                 if (router.before(response) == false) {
                     return false;
                 }
+                controller = 'threads'; action = 'index';
                 form.targetOn('create');
                 if (tag == '~') {
                     var tag_selector = "overview_tag";
+                    form.setTag('');
                 } else {
                     var tag_selector = tag;
+                    form.setTag(tag);
                 }
                 tagList.$el.find("#" + tag_selector).addClass('selected');
                 header.$el.find("#tags_link").addClass('active');
@@ -134,6 +148,9 @@ var MainRouter = Backbone.Router.extend({
                     var thread = router.buildThread(response.threads[i], false);
                     section.append(thread.container);
                     threads[i] = thread.model;
+                    if (i != response.threads.length-1) {
+                        section.append("<hr />");
+                    }
                 }
                 threadsCollection = new ThreadsCollection(threads);
                 section.append(paginator.render(response.pages, page, tag).el);
@@ -167,26 +184,44 @@ var MainRouter = Backbone.Router.extend({
         post.view = new PostView({id: 'i' + post.get('rid')}, post);
         thread.view.$el.parent().append(post.view.render(true).el);
         if (scroll == true) {
-            post.view.scrollTo();
+            post.view.highlight();
+            if (settings.get('scroll_to_post') == true) {
+                post.view.scrollTo();
+            }
         }
+        setTimeout(function() {
+            if (waitToHighlight != null) {
+                if (post.get('rid') == waitToHighlight) {
+                    if (settings.get('scroll_to_post') == true) {
+                        post.view.scrollTo().highlight();
+                        document.location.hash = 'i' + waitToHighlight;
+                    }
+                    waitToHighlight = null;
+                }
+            }
+        }, 100);
         return false;
     },
 
     notFound: function() {
         section.html('<h1> not found </h1>');
+        bottomMenu.vanish();
         hideLoadingIndicator();
         return this;
     },
 
     showError: function(response) {
-        section.html(response.responseText);
+        bottomMenu.vanish();
         hideLoadingIndicator();
+        if (response.errors != undefined) {
+            response.errors.forEach(function(error) {
+                section.html('<h1>Ошибка:</h1>')
+                section.append('<br />' + error); 
+            });
+        } else {
+            section.html(response.responseText);
+        }
         return this;
-    },
-
-    receiveMessage: function(message) {
-        alert('hju');
-        return false
     },
 });
 
@@ -219,7 +254,7 @@ function setMouseOver() {
 function showLoadingIndicator() {
     loadingTimeout = setTimeout(function () {
         loadingIndicator.css('display', 'block');
-    }, 400);
+    }, 300);
 }
 
 function hideLoadingIndicator() {
@@ -231,7 +266,8 @@ function hideLoadingIndicator() {
 }
 
 function adjustAbsoluteElements() {
-    tagList.adjust($("#tags_link").offset().left);
+    tagList.adjust();
+    settings.adjust();
 }
 
 function checkHash() {
@@ -253,8 +289,10 @@ function initializeInterface() {
     mainContainer.append(bottomMenu.el);
     mainContainer.append(form.el);
     mainContainer.append(previews.el);
+    mainContainer.append(settings.el);
     section = $("<section id='container'></section>");
     mainContainer.append(section).append('<footer>Tachyon ' + VERSION + '</footer>');
+    header.setFixed(settings.get('fixed_header'));
     adjustAbsoluteElements();
     $(window).resize(adjustAbsoluteElements);
     header.$el.find("#tags_link").hover(showTagList, hideTagList);
@@ -281,10 +319,15 @@ function initializeInterface() {
         header.setCounters(message);
         return false;
     });
+
+    setInterval(function() {
+        $.ajax({url: '/utility/ping', type: 'post'});
+    }, 60000)
 }
 
-var header = new HeaderView;
-var tagList = new TagListView;
+settings = new SettingsView;
+header = new HeaderView;
+tagList = new TagListView;
 if (tagList.gotTags == true) {
     mainContainer = $('#main_container');
     loadingIndicator = $("#loading");

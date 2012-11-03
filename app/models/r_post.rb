@@ -2,21 +2,21 @@
 
 class TachyonMessageValidator < ActiveModel::Validator
   def validate(record)
-    record.errors[:message] << I18n.t('errors.message_too_long') if record.message.length > 5000
-    record.errors[:title] << I18n.t('errors.title_too_long') if record.title.length > 60
+    record.errors[:message] << I18n.t('errors.content.long_message') if record.message.length > 5000
+    record.errors[:title] << I18n.t('errors.content.long_title') if record.title.length > 60
     # record.errors[:password] << I18n.t('errors.password_too_long') if record.password.length > 100
     regexp = /(\w|[й,ц,у,к,е,н,г,ш,щ,з,х,ъ,ф,ы,в,а,п,р,о,л,д,ж,э,я,ч,с,м,и,т,ь,б,ю])+/
     message_present = !record.message.scan(regexp).empty?
 
     if message_present or record.has_file?
       if record.kind_of?(RThread)  
-        record.errors[:base] << I18n.t('errors.no_message') unless message_present
+        record.errors[:base] << I18n.t('errors.content.no_message') unless message_present
         if record.new_record?
-          record.errors[:base] << I18n.t('errors.no_file') unless record.has_file? 
+          record.errors[:base] << I18n.t('errors.content.no_file') unless record.has_file? 
         end
       end
     else
-      record.errors[:base] << I18n.t('errors.no_content') 
+      record.errors[:base] << I18n.t('errors.content.no_content') 
     end
   end
 end
@@ -34,7 +34,7 @@ class RPost < ActiveRecord::Base
   before_create do
     thread = self.r_thread
     thread.replies_count += 1
-    thread.bump = Time.now
+    thread.bump = Time.now unless self.sage
     thread.save
     Rails.cache.delete("t/#{thread.rid}/f") 
     Rails.cache.delete("t/#{thread.rid}/m")

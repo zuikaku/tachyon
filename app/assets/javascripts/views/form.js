@@ -12,18 +12,57 @@ var FormView = Backbone.View.extend({
         "click #file_span":     "toggleFileOrVideo",
         "click #video_span":    "toggleFileOrVideo",
         'submit':               'ajaxSubmit',
-        'click .editbox b, i, u, s, span, a': 'markup',
+        'click .editbox b, .editbox i, .editbox u, .editbox s, .editbox span, .editbox a': 'markup',
+        'focusin input, textarea': 'hidePlaceholder',
+        'focusout input, textarea': 'showPlaceholder',
     },
 
     initialize: function() {
         _.bindAll(this, 'render');
         this.render();
+        $.each(this.$el.find('input, textarea'), function(index, div) {
+            div = $(div);
+            if (div.attr('placeholder') != undefined) {
+                div.data('placeholder', div.attr('placeholder'));
+            }
+        });
+        if (tagList.captcha != undefined) {
+            this.setCaptcha(tagList.captcha);
+            tagList.captcha = undefined;
+        }
+    },
+
+    hidePlaceholder: function(event) {
+        var input = $(event.currentTarget);
+        if (input.attr('placeholder') != undefined) {
+            input.removeAttr('placeholder');
+        }
+    },
+
+    showPlaceholder: function(event) {
+        var input = $(event.currentTarget);
+        if (input.val().length == 0) {
+            input.attr('placeholder', input.data('placeholder'));
+        }  
     },
 
     ajaxSubmit: function(event) {
         event.preventDefault();
         this.toggleLoading('on');
+        var errors = form.$el.find('.errors').first();
+        errors.html('');
         var data = new FormData();
+        if (this.captchaChallenge != undefined) {
+            var captchaResponse = this.$el.find('#captcha_word').val();
+            if (captchaResponse.length < 3) {
+                errors.html('Введите капчу.');
+                this.toggleLoading('off');
+                return false;
+            }
+            data.append('captcha[challenge]', this.captchaChallenge);
+            data.append('captcha[response]', this.$el.find('#captcha_word').val());
+        }
+        data.append('defence_token',     settings.get('defence_token'));
         data.append('message[message]',  this.$el.find('textarea').first().val());
         data.append('message[title]',    this.$el.find('#form_title').first().val());
         data.append('message[password]', this.$el.find('#form_password').first().val());
@@ -38,8 +77,6 @@ var FormView = Backbone.View.extend({
         if ($("#thread_container").length == 0) {
             data.append('returnpost', 'yeah sure');
         }
-        var errors = form.$el.find('.errors').first();
-        errors.html('');
         $.ajax({
             url: this.$el.attr('action'),
             data: data,
@@ -49,12 +86,17 @@ var FormView = Backbone.View.extend({
             contentType: false,
             success: function(response) {
                 form.toggleLoading('off');
+                if (response.defence_token != undefined) {
+                    settings.set('defence_token', response.defence_token);
+                }
                 if (response.status == 'success') {
                     form.clear().hide();
                     if (response.post != undefined) {
                         router.addPost(response.post, true);
                     } else if (response.thread_rid != undefined) {
                         router.navigate('/thread/' + response.thread_rid, {trigger: true});
+                    } else if (response.post_rid != undefined) {
+                        waitToHighlight = response.post_rid;
                     }
                 } else {
                     for (i=0; i < response.errors.length; i++) {
@@ -64,10 +106,11 @@ var FormView = Backbone.View.extend({
                         }
                     }
                 }
+                form.setCaptcha(response.captcha);
                 return false;
             }, 
             error: function() {
-                form.toggleLoading();
+                form.toggleLoading('off');
                 errors.html('Неизвестная ошибка. Проверьте соединение.')
                 return false;
             }
@@ -87,9 +130,12 @@ var FormView = Backbone.View.extend({
                 clearTimeout(this.loadingTimeout);
                 this.loadingTimeout = undefined;
             }
-            this.$el.find('input,  textarea').removeAttr('disabled');
-            this.$el.find('#form_loading').remove();
-            this.$el.find('.divider').css('opacity', 1);
+            form = this;
+            setTimeout(function() {
+                form.$el.find('input,  textarea').removeAttr('disabled');
+                form.$el.find('#form_loading').remove();
+                form.$el.find('.divider').css('opacity', 1);
+            }, 100);
         } else if (trigger == 'on') {
             this.$el.find('input, textarea').attr('disabled', 'disabled');
             var form = this;
@@ -130,6 +176,7 @@ var FormView = Backbone.View.extend({
     },
 
     hide: function() {
+        this.$el.find('.errors').html('');
         this.$el.animate({right: -(this.$el.width() + 50)}, 400);
         bottomMenu.setButtonValue('previous');
         return this;
@@ -137,6 +184,7 @@ var FormView = Backbone.View.extend({
 
     targetOn: function(what, rid) {
         this.inThread = rid;
+        bottomMenu.$el.css('display', 'block');
         if (what == 'create') {
             this.$el.attr('action', '/create');
             this.$el.find('.disclaimer').first().html('Создать новый тред');
@@ -152,6 +200,11 @@ var FormView = Backbone.View.extend({
             bottomMenu.setButtonValue(menuValue);
         }
         return this;
+    },
+
+    setTag: function(tag)  {
+        this.$el.find('#tag_field').val(tag);
+        return false;
     },
 
     getPassword: function() {
@@ -218,6 +271,18 @@ var FormView = Backbone.View.extend({
         return false;
     },
 
+    setCaptcha: function(key) {
+        if (key == undefined) {
+            this.$el.find('#captcha_field').css('display', 'none');    
+            this.$el.find('#captcha_image').attr('src', '/assets/ui/loading.gif');
+        } else {
+            this.$el.find('#captcha_image').attr('src', '/captcha/' + key + '.png');
+            this.$el.find('#captcha_field').css('display', 'block');
+        }
+        this.$el.find('#captcha_word').val('');
+        this.captchaChallenge = key;
+    },
+
     render: function() {
         var t = "<div class='divider errors'></div>";
         t += "<div class='divider disclaimer'>Создать новый тред</div>";
@@ -244,7 +309,7 @@ var FormView = Backbone.View.extend({
                 t += "&nbsp;/&nbsp;";
                 t += "<span id='video_span'>YouTube</span>";
                 t += "<span><input type='file' name='file' id='file_field'></span>";
-                t += "<input type='text' name='video' id='video_field'>";
+                t += "<input type='text' name='video' id='video_field'  placeholder='Адрес видео'>";
             t += "</div><div class='right'>";
                 t += "<label id='sage'>";
                     t += "sage: <input type='checkbox' name='message[sage]'>";
@@ -255,6 +320,10 @@ var FormView = Backbone.View.extend({
                     t += " value='huipizda' name='message[password]'>";
                 t += "</label>";
             t += "</div>";
+        t += "</div>";
+        t += "<div id='captcha_field'>";
+            t += "<img alt='captcha' id='captcha_image' src='/assets/ui/loading.gif' />";
+            t += "<input id='captcha_word' name='captcha[response]' placeholder='введите символы' type='text'>";
         t += "</div>";
         this.el.innerHTML = t;
         return this;

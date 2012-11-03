@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20121007214131) do
+ActiveRecord::Schema.define(:version => 20121007214135) do
 
   create_table "admin_log_entries", :force => true do |t|
     t.string   "message"
@@ -33,17 +33,23 @@ ActiveRecord::Schema.define(:version => 20121007214131) do
   create_table "captchas", :force => true do |t|
     t.string   "word"
     t.integer  "key"
-    t.boolean  "defensive",  :default => false
     t.datetime "created_at",                    :null => false
     t.datetime "updated_at",                    :null => false
+    t.boolean  "defensive",  :default => false
   end
 
   add_index "captchas", ["defensive"], :name => "index_captchas_on_defensive"
   add_index "captchas", ["key"], :name => "index_captchas_on_key", :unique => true
   add_index "captchas", ["word"], :name => "index_captchas_on_word", :unique => true
 
+  create_table "defence_tokens", :force => true do |t|
+    t.datetime "created_at", :null => false
+    t.datetime "updated_at", :null => false
+    t.string   "hashname"
+  end
+
   create_table "id_counters", :force => true do |t|
-    t.integer  "last_id",       :default => 0
+    t.integer  "last_rid",      :default => 0
     t.integer  "total_threads", :default => 0
     t.integer  "total_posts",   :default => 0
     t.datetime "created_at",                   :null => false
@@ -59,8 +65,6 @@ ActiveRecord::Schema.define(:version => 20121007214131) do
     t.datetime "created_at",                               :null => false
     t.datetime "updated_at",                               :null => false
   end
-
-  add_index "ips", ["address"], :name => "index_ips_on_address", :unique => true
 
   create_table "moders", :force => true do |t|
     t.string   "hashed_password"
@@ -84,15 +88,15 @@ ActiveRecord::Schema.define(:version => 20121007214131) do
     t.string   "extension"
     t.integer  "size"
     t.integer  "uploads_count",  :default => 0
-    t.boolean  "resized",        :default => false
     t.integer  "columns"
     t.integer  "rows"
+    t.boolean  "resized",        :default => false
+    t.datetime "created_at",                        :null => false
+    t.datetime "updated_at",                        :null => false
     t.integer  "thumb_columns"
     t.integer  "thumb_rows"
     t.string   "video_title"
     t.integer  "video_duration"
-    t.datetime "created_at",                        :null => false
-    t.datetime "updated_at",                        :null => false
   end
 
   create_table "r_posts", :force => true do |t|
@@ -104,11 +108,13 @@ ActiveRecord::Schema.define(:version => 20121007214131) do
     t.integer  "r_file_id"
     t.integer  "r_thread_id"
     t.integer  "ip_id"
-    t.boolean  "sage",         :default => false
-    t.datetime "created_at",                      :null => false
-    t.datetime "updated_at",                      :null => false
+    t.boolean  "sage",             :default => false
+    t.datetime "created_at",                          :null => false
+    t.datetime "updated_at",                          :null => false
+    t.integer  "defence_token_id"
   end
 
+  add_index "r_posts", ["defence_token_id"], :name => "index_r_posts_on_defence_token_id"
   add_index "r_posts", ["ip_id"], :name => "index_r_posts_on_ip_id"
   add_index "r_posts", ["r_file_id"], :name => "index_r_posts_on_r_file_id"
   add_index "r_posts", ["r_thread_id"], :name => "index_r_posts_on_r_thread_id"
@@ -122,15 +128,17 @@ ActiveRecord::Schema.define(:version => 20121007214131) do
     t.integer  "rid"
     t.integer  "r_file_id"
     t.integer  "ip_id"
-    t.integer  "replies_count", :default => 0
-    t.integer  "replies_files", :default => 0
-    t.boolean  "sticky",        :default => false
-    t.boolean  "closed",        :default => false
+    t.integer  "replies_count",    :default => 0
+    t.integer  "replies_files",    :default => 0
+    t.boolean  "sticky",           :default => false
+    t.boolean  "closed",           :default => false
     t.datetime "bump"
-    t.datetime "created_at",                       :null => false
-    t.datetime "updated_at",                       :null => false
+    t.datetime "created_at",                          :null => false
+    t.datetime "updated_at",                          :null => false
+    t.integer  "defence_token_id"
   end
 
+  add_index "r_threads", ["defence_token_id"], :name => "index_r_threads_on_defence_token_id"
   add_index "r_threads", ["ip_id"], :name => "index_r_threads_on_ip_id"
   add_index "r_threads", ["r_file_id"], :name => "index_r_threads_on_r_file_id"
   add_index "r_threads", ["rid"], :name => "index_r_threads_on_rid", :unique => true
@@ -142,18 +150,14 @@ ActiveRecord::Schema.define(:version => 20121007214131) do
 
   create_table "settings_records", :force => true do |t|
     t.text     "allowed_file_types"
-    t.text     "spamtxt"
-    t.integer  "max_file_size",        :default => 10485760
-    t.integer  "threads_per_page",     :default => 10
-    t.integer  "max_threads",          :default => 1000
-    t.integer  "bump_limit",           :default => 500
-    t.integer  "thread_posting_speed", :default => 0
-    t.integer  "reply_posting_speed",  :default => 5
-    t.boolean  "defence_mode",         :default => false
-    t.boolean  "spamtxt_enabled",      :default => false
-    t.boolean  "new_threads_to_trash", :default => false
-    t.datetime "created_at",                                 :null => false
-    t.datetime "updated_at",                                 :null => false
+    t.integer  "max_file_size",           :default => 3145728
+    t.integer  "threads_per_page",        :default => 10
+    t.integer  "max_threads",             :default => 1000
+    t.integer  "bump_limit",              :default => 500
+    t.integer  "max_references_per_post", :default => 10
+    t.datetime "created_at",                                   :null => false
+    t.datetime "updated_at",                                   :null => false
+    t.text     "defence"
   end
 
   create_table "tags", :force => true do |t|
@@ -169,11 +173,11 @@ ActiveRecord::Schema.define(:version => 20121007214131) do
   create_table "users", :force => true do |t|
     t.string   "hashname"
     t.text     "settings"
+    t.datetime "created_at", :null => false
+    t.datetime "updated_at", :null => false
     t.text     "hidden"
     t.text     "seen"
     t.text     "favorites"
-    t.datetime "created_at", :null => false
-    t.datetime "updated_at", :null => false
   end
 
   add_index "users", ["hashname"], :name => "index_users_on_hashname", :unique => true

@@ -10,6 +10,7 @@ var BottomMenuView = Backbone.View.extend({
         _.bindAll(this, 'render');
         this.render();
         this.$button = this.$el.find('#qr_button').first();
+        this.toggleLamerButtons(settings.get('lamer_buttons'));
     },
 
     render: function() {
@@ -41,5 +42,13 @@ var BottomMenuView = Backbone.View.extend({
             this.$button.html(value);
         }
         return this;
+    },
+
+    vanish: function() {
+        this.$el.css('display', 'none');
+    },
+
+    toggleLamerButtons: function(value) {
+        return false;
     }
 })

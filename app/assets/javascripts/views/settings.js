@@ -1,0 +1,221 @@
+var SettingsView = Backbone.View.extend({
+    tagName:  'div',
+    id:       'settings',
+    el:       '',
+
+    events: {
+        'click .close_button': 'close',
+        'change input, select': 'onChange',
+    },
+
+    initialize: function() {
+        var defaults = {
+            hidden_posts:       [],
+            hidden_tags:        ['nsfw', 'trash'],
+            favorites:          [],
+            threads_per_page:   10,
+            fixed_header:       true,
+            strict_hiding:      false,
+            scroll_to_post:     true,
+            shadows:            false,
+            lamer_buttons:      false,
+            search_buttons:     true,
+            style:              'tachyon',
+        }
+        var settingsLink = this;
+        $.each(defaults, function(attr, defaultValue) {
+            if (settingsLink.get(attr) == undefined) {
+                settingsLink.set(attr, defaultValue);
+            }
+        });
+        _.bindAll(this, 'render');
+        this.render();
+        this._set();
+        return this;
+    },
+
+    contains: function(array, value) {
+        var contains = [false, undefined];
+        for (var i=0; i< array.length; i++) {
+            if (array[i] == value) {
+                contains[0] = true;
+                contains[1] = i;
+                break;
+            }
+        }
+        return contains;
+    },
+
+
+    set: function(attr, value) {
+        return localStorage.setItem(attr, JSON.stringify(value));
+    },
+
+    get: function(attr) {
+        return JSON.parse(localStorage.getItem(attr));
+    },
+
+    isFavorite: function(threadRid) {
+        var contains = this.contains(this.get('favorites'), threadRid);
+        return (contains[0] == true);
+    },
+
+    toggleFavorite: function(threadRid, action) {
+        var favorites = this.get('favorites');
+        var contains = this.contains(this.get('favorites'), threadRid);
+        if (contains[0] == false && action == 'add') {
+            if (favorites.length >= 20) {
+                alert('В избранном может быть не более 20 тредов.');
+                return false;
+            } 
+            favorites.push(threadRid);
+        } else if (contains[0] == true && action == 'remove') {
+            favorites.splice(contains[1], 1);
+        }
+        this.set('favorites', favorites);
+        return true;
+    },
+
+    hide: function(object) {
+        return this.hidingToggle(object, 'hide');
+    },
+
+    unhide: function(object) {
+        return this.hidingToggle(object, 'unhide');
+    },
+
+    hidingToggle: function(object, action) {
+        if (typeof object == 'string') {
+            var key = 'hidden_tags';
+        } else {
+            var key = 'hidden_posts';
+        }
+        var hidden = this.get(key);
+        var contains = this.contains(hidden, object);
+        if (action == 'unhide' && contains[0] == true) {
+            hidden.splice(contains[1], 1);
+        } else if (action == 'hide' && contains[0] == false) {
+            hidden.push(object);
+        }
+        this.set(key, hidden);
+        return false;
+    },
+
+    show: function() {
+        this.$el.css({display: 'block', opacity: 0});
+        this.adjust();
+        this.$el.animate({opacity: 0.95}, 200);
+        return this;
+    },
+
+    close: function() {
+        this.$el.animate({opacity: 0}, 200);
+        var element = this.$el;
+        setTimeout(function() {
+            element.css('display', 'none');
+        }, 210);
+        return this;
+    },
+
+    adjust: function() {
+        var top = (window.innerHeight - this.$el.height()) / 2;
+        var left = (document.body.clientWidth - this.$el.width()) / 2;
+        this.$el.css({top: top, left: left});
+        return this;
+    }, 
+
+    onChange: function(event) {
+        var element = $(event.currentTarget);
+        var value = element.val();
+        if (element.attr('name') == 'threads_per_page') {
+            tryInteger = parseInt(value);
+            if (tryInteger >= 5 && tryInteger <= 20) {
+                value = tryInteger;
+            } else {
+                value = 10;
+                element.val(value);
+            }
+        } else if (element.attr('type') == 'checkbox') {
+            if (element.attr('checked') == 'checked') {
+                value = true;
+            } else {
+                value = false;
+            }
+        }
+        this.set(element.attr('name'), value);
+        switch (element.attr('name')) {
+            case 'fixed_header':    this._fixed_header();   break;
+            case 'shadows':         this._shadows();        break;
+            case 'lamer_buttons':   this._lamer_buttons();  break;
+        }
+        return false;
+    },
+
+    _fixed_header: function() {
+        header.setFixed(this.get('fixed_header'));
+        return this;
+    },
+
+    _shadows: function() {
+        if (this.get('shadows') == true) {
+            $('.post').css('box-shadow', '0 1px 3px #d7d7d7');
+        } else {
+            $('.post').css('box-shadow', 'none');
+        }
+        return this;
+    },
+
+    _lamer_buttons: function() {
+        bottomMenu.toggleLamerButtons(this.get('lamer_buttons'));
+        return this;
+    },
+
+    _set: function() {
+        // this.
+        //     // _fixed_header().
+        //     // _lamer_buttons().
+        //     // _shadows();
+        return this;
+    }, 
+
+    render: function() {
+        var settingsLink = this;
+        var t = "<span title='закрыть' class='close_button'>×</span><br />";
+        t += "<label>"
+            + "Стиль: "
+            + "<select name='style'>";
+            ['tachyon', 'photon', 'neutron'].forEach(function(style) {
+                t += "<option name='" + style + "'";
+                if (settingsLink.get('style') == style) {
+                    t += " selected='selected'";
+                }
+                style = style.charAt(0).toUpperCase() + style.slice(1);
+                t += ">" + style + "</option>";
+            });
+            t += "</select>"
+        + "</label><br /><br />";
+        t += "<label>"
+            + "Показывать по "
+            + "<input class='threads_per_page' name='threads_per_page'" 
+            + " type='text' value='" + this.get('threads_per_page') + "' />"
+            + " тредов на странице."
+        + "</label><br /><br />";
+        var booleans = {
+            fixed_header:   'закрепить меню сверху',
+            scroll_to_post: 'перематывать страницу к новому посту после его написания',
+            shadows:        'отрисовывать тени постов (могут замедлять прокрутку)',
+            lamer_buttons:  'показывать кнопки &laquo;вверх&raquo; и &laquo;вниз&raquo;',
+            search_buttons: 'показывать кнопки поиска картинки',
+        };
+        $.each(booleans, function(option, name) {
+            t += "<label><input class='" + option + "' name='" + option;
+            t += "' type='checkbox' ";
+            if (settingsLink.get(option) == true) {
+                t += "checked='checked' ";
+            }
+            t += "/> " + name + "</label><br />";
+        });
+        this.el.innerHTML = t;
+        return this;
+    },
+});

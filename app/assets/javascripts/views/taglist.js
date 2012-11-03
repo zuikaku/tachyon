@@ -12,12 +12,23 @@ var TagListView = Backbone.View.extend({
     render: function() {
         var t = "<a href='/~/' id ='overview_tag'>/~/ Обзор</a><table>"
         var taglist = this;
+        var token = {};
+        if (settings.get('defence_token') != undefined) {
+            token = {defence_token: settings.get('defence_token')};
+        }
         $.ajax({
             type: 'post',
             url: '/utility/get_tags',
+            data: token,
             async: false,
             success: function(response) {
                 taglist.counters = response.counters
+                if (response.captcha != undefined) {
+                    taglist.captcha = response.captcha;
+                }
+                if (response.defence_token != undefined) {
+                    settings.set('defence_token', response.defence_token);
+                }
                 var tags_array = JSON.parse(response.tags);
                 var rows = parseInt(tags_array.length/2) + 1;
                 for (var i = 0; i < rows; i++) {
@@ -43,7 +54,8 @@ var TagListView = Backbone.View.extend({
         return this;
     },
 
-    adjust: function(offset) {
+    adjust: function() {
+        var offset = $("#tags_link").offset().left
         this.$el.css('left', offset - this.$el.width()/2);
         this.$el.css('top', -(this.$el.height() + 50));
         return this;

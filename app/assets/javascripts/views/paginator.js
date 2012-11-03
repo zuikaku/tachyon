@@ -1,51 +1,59 @@
 var PaginatorView = Backbone.View.extend({
-  tagName:  'div',
-  id:       'paginator',
-  el:       '',
+    tagName:  'div',
+    id:       'paginator',
+    el:       '',
 
-  render: function(total_pages, current_page, tag) {
-    var limit = 2;
-    var t = "";
-    var current_href = "'.'";
-    var between = (1 + current_page) - 3;
-    var p = 2;
-    if (current_page != 1) {
-      current_href = "'/" + tag + "/page/" + current_page + "'";
-      t += "<a href='/" + tag + "/'>1</a>";
-    }
-    if (between > (limit + 1)) {
-      t += "...";
-      p = current_page - limit - 1;
-    }
-    for (var i = p; i < current_page; i++) {
-      t += this.pageLink(i, tag);
-    }
-    t += "<a href=" + current_href + " class='current'>"; 
-    t += current_page + "</a>";
-    if (current_page < total_pages) {
-      var hui = (total_pages - current_page) - 1;
-      if (hui > limit) {
-        between = current_page + 2;
-        for (var i = (current_page+1); i <= (between + 1); i++) {
-          t += this.pageLink(i, tag);
+    render: function(totalPages, currentPage, tag) {
+        this.currentPage = currentPage;
+        this.tag = tag;
+        var t = '<span>Страницы:</span>';
+        var hrefCurrent = "'.'";
+        if (currentPage > 1) {
+            var iterator = 1;
+            var dotsAdded = false;
+            for (var page = 1; page < currentPage; page++) {
+                t += this.pageLink(page);
+                iterator++;
+                if (iterator > 1 && currentPage-2 > 3 && dotsAdded == false) {
+                    t += "...";
+                    dotsAdded = true;
+                    page = currentPage - 4;
+                }
+            }
         }
-        if ((total_pages - (current_page - limit)) > 2) {
-          t += "...";
+        t += this.pageLink(currentPage);
+        if (currentPage < totalPages) {
+            var iterator = 1;
+            var dotsAdded = false;
+            for (var page = currentPage+1; page < totalPages+1; page++) {
+                if (iterator > 3) {
+                    if (dotsAdded == false) {
+                        if ((totalPages - (currentPage+3)) > 1) {
+                            t += "...";
+                        }
+                        t += this.pageLink(totalPages);
+                        dotsAdded = true;
+                    }
+                } else {
+                    t += this.pageLink(page);
+                }
+                iterator++;
+            }
         }
-      } else {
-        for (var i=(current_page+1); i < (current_page + hui); i++) {
-          t += this.pageLink(i, tag);
-        }
-      }
-    }
-    if (current_page != total_pages) {
-      t += this.pageLink(total_pages, tag);
-    }
-    this.$el.html(t);
-    return this;
-  },
+        this.el.innerHTML = t;
+        return this;
+    },
 
-  pageLink: function(page_number, tag) {
-    return "<a href='/" + tag + "/page/" + page_number + "'>" + page_number + "</a>";
-  }
+    pageLink: function(pageNumber) {
+        var t = "<a href='/" + this.tag + "/";
+        if (pageNumber != 1) {
+            t += "page/" + pageNumber;
+        } 
+        t += "' "
+        if (this.currentPage == pageNumber) {
+            t += "class='current'";
+        }
+        t += ">" + pageNumber + "</a>";
+        return t;
+    },
 });

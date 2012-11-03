@@ -3,11 +3,12 @@ var ThreadView = Backbone.View.extend({
     className:  'thread',
 
     events:     {
-        "mouseenter .file_container":     "showFileSearch",
-        "mouseleave  .file_container":     "hideFileSearch",
-        "click .post_header .post_link": "callReplyForm",
-        "click .pic_url":                "showPicture",
-        "click .omitted a":              "expand",
+        "mouseenter .file_container":       "showFileSearch",
+        "mouseleave  .file_container":      "hideFileSearch",
+        "click .post_header .post_link":    "callReplyForm",
+        "click .pic_url":                   "showPicture",
+        "click .omitted a":                 "expand",
+        "click .fav_button":                "toggleFavorite",
         "mouseenter blockquote .post_link, .replies_rids .post_link, .proofmark, .context_link": 'showPreview',
         "mouseleave blockquote .post_link, .replies_rids .post_link, .proofmark, .context_link":  'previewLinkOut',
     },
@@ -59,15 +60,31 @@ var ThreadView = Backbone.View.extend({
         return false;
     },
 
+    toggleFavorite: function(event) {
+        event.preventDefault();
+        var rid = this.model.get('rid');
+        var link = $(event.currentTarget);
+        if (settings.isFavorite(rid) == false) {
+            if (settings.toggleFavorite(rid, 'add') == true) {
+                link.find('img').attr('src', '/assets/ui/star_full.png');
+                link.attr('title', 'Убрать из избранного');
+            }
+        } else {
+            settings.toggleFavorite(rid, 'remove');
+            link.find('img').attr('src', '/assets/ui/star_empty.png');
+            link.attr('title', 'Добавить в избранное');
+        }
+        return false;
+    },
+
     scrollTo: function() {
-        // window.scrollTo(0, this.$el.offset().top - 150);
         $.scrollTo(this.$el, 200, {offset: {top: -200}});
         return this;   
     },
 
     callReplyForm: function(event) {
         event.preventDefault();
-        var paretID = this.model.get('thread_rid');
+        var parentID = this.model.get('thread_rid');
         if (parentID == undefined) {
             parentID = this.model.get('rid');
         }
@@ -76,15 +93,21 @@ var ThreadView = Backbone.View.extend({
     },
 
     showFileSearch: function(event) {
-        var t = "<span class='file_search'>";
-            t += "Поиск: гугл хуюгл";
-        t += "</span>"
-        $(event.currentTarget).append(t);
+        if (settings.get('search_buttons') == true) {
+            if (this.model.get('file').extension != 'video') {
+                var t = "<span class='file_search'>";
+                    t += "Поиск: гугл хуюгл";
+                t += "</span>"
+                $(event.currentTarget).append(t);
+            }
+        }
         return false;
     },
 
     hideFileSearch: function(event) {
-        $('.file_search').remove();
+        if (settings.get('search_buttons') == true) {
+            $('.file_search').remove();
+        }
         return false;
     },
 
@@ -254,19 +277,32 @@ var ThreadView = Backbone.View.extend({
                 t += this.model.get('title');
                 t += "</a>";
             }
-            t += "<a href='#' title='Добавить в избранное' class='fav_button'>";
-                t += "<img src='/assets/ui/star_black.png' />";
+            t += "<a href='#' class='fav_button' ";
+                if (settings.isFavorite(this.model.get('rid')) == true)  {
+                    var star = "full";
+                    t += "title='Убрать из избранного'>";
+                } else {
+                    var star = "empty";
+                    t += "title='Добавить в избранное'>";
+                }
+                t += "<img src='/assets/ui/star_" + star + ".png' />";
             t += "</a>";
-            t += "</a><a href='#' title='Скрыть' class='hide_button'>";
-                t += "<img src='/assets/ui/hide.png' />";
-            t += "</a>";
+            if (action != 'show') {
+                t += "<a href='#' title='Скрыть' class='hide_button'>";
+                    t += "<img src='/assets/ui/hide.png' />";
+                t += "</a>";
+            }
             t += "<span class='thread_info'>";
                 t += this.renderDateTime(this.model.get('created_at')) + ', ';
-                t += "<span class='taglist'>тэги: ";
-                    var tags = this.model.get('tags')
+                var tags = this.model.get('tags')
+                t += "<span class='taglist'>тэг";
+                if (tags.length > 1) {
+                    t += "и";
+                }
+                t += ": ";
                     for (var i=0; i < tags.length; i++) {
                         t += "<a href='/" + tags[i].alias + "/' ";
-                        t += "title='" + tags[i].alias + "'>" + tags[i].name + "</a>";
+                        t += "title='/" + tags[i].alias + "/'>" + tags[i].name + "</a>";
                         if (i != (tags.length - 1)) {
                             t += ",";
                         }
@@ -281,7 +317,7 @@ var ThreadView = Backbone.View.extend({
         t += "</div>";
         if (this.model.posts != undefined) {
             if (this.full != true && this.model.get('replies_count') > this.model.posts.length) {
-                t += "<div class='omitted'><a href='#' title='развернуть тред'>" 
+                t += "<div class='omitted'><a href='" + url + "' title='развернуть тред'>" 
                 t += this.verboseOmitted(this.model.get('replies_count') - 6);
                 t += " спустя:</a></div>";
             }
@@ -340,14 +376,27 @@ var PostView = ThreadView.extend({
             }
         t += "</div></div>";
         this.el.innerHTML = t;
+        if (settings.get('shadows') == true) {
+            this.el.firstChild.style.boxShadow = "0 1px 3px #d7d7d7";
+        }
         if (updateReferences == true) {
             var model = this.model
             $.each(this.$el.find('blockquote .post_link'), function(index, div) {
                 var postId = $(div).find('a').first().attr('href').split('#');
-                postId = postId[postId.length - 1];
-                var post = $('#' + postId);
-                if (post.html != undefined) {
-                    var rids = post.find('.replies_rids').first();
+                postId = parseInt(postId[postId.length - 1].substring(1));
+                var target = null;
+                threadsCollection.each(function(thread) {
+                    var query = thread.posts.where({rid: postId});
+                    if (query.length > 0) {
+                        target = query[0];
+                    }
+                });
+                if (target != null) {
+                    var rids = target.get('replies_rids');
+                    rids.push({thread: model.get('thread_rid'), post: model.get('rid')});
+                    target.set('replies_rids', rids);
+                    var post = target.view.$el;
+                    rids = post.find('.replies_rids').first();
                     var content = "&gt;&gt;" + model.get('rid');
                     var link = "<div class='post_link'><a href='/thread/" + model.get('thread_rid');
                     link += '#i' + model.get('rid') + "'>" + content + "</a></div>";

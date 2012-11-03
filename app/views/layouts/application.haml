@@ -1,15 +1,16 @@
-- cache 'index' do 
-  %html
-    %head
-      %title= "Tachyon"
-      %meta{:'http-equiv' => 'Content-Type', content: 'text/html; charset=utf-8'}
-      = csrf_meta_tags
+%html
+  %head
+    %title= "Tachyon"
+    %meta{:'http-equiv' => 'Content-Type', content: 'text/html; charset=utf-8'}
+    = csrf_meta_tags
+    - cache 'index1' do
       = stylesheet_link_tag     :tachyon, media: 'all'
       %script{type: 'text/javascript'}
         = "var production = #{Rails.env.production?};"
       = javascript_include_tag  :tachyon
+  - cache 'index2' do
     %body
       #main_container
         = image_tag('ui/loading.gif', id: 'loading')
 
-    
+  

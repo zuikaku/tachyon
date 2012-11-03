@@ -84,17 +84,23 @@ class ThreadsController < ApplicationController
   end
 
   def show_page(page_number) 
+    amount = params[:amount].to_i
+    if amount < 5 or amount > 20
+      @response[:errors] = ['invalid request']
+      @response[:status] = 'fail'
+      return respond!
+    end
     @response[:status] = 'success'
     @response[:threads] = Array.new
-    offset = (page_number * 10) - 10
+    offset = (page_number * amount) - amount
     if @tag == '~'
-      thread_rids = RThread.find(:all, select: 'rid', order: 'bump DESC', limit: 10, offset: offset)
+      thread_rids = RThread.find(:all, select: 'rid', order: 'bump DESC', limit: amount, offset: offset)
       pages = RThread.count
     else
       thread_rids = RThread.connection.select_all("SELECT r_threads.rid FROM r_threads
         INNER JOIN r_threads_tags ON r_threads_tags.r_thread_id = r_threads.id 
         INNER JOIN tags ON tags.id = r_threads_tags.tag_id WHERE tags.alias = '#{@tag.alias}'
-        ORDER BY bump DESC LIMIT 10 OFFSET #{offset}")
+        ORDER BY bump DESC LIMIT #{amount} OFFSET #{offset}")
       pages = RThread.joins(:tags).where("tags.alias = ?", @tag.alias).count
     end
     return not_found if page_number > pages
@@ -104,8 +110,8 @@ class ThreadsController < ApplicationController
       @response[:threads] << data
     end
     plus = 0
-    plus = 1 if (pages % 10) > 0
-    @response[:pages] = (pages / 10) + plus
+    plus = 1 if (pages % amount) > 0
+    @response[:pages] = (pages / amount) + plus
     @response[:status] == 'success'
     respond!
   end
@@ -146,7 +152,7 @@ class ThreadsController < ApplicationController
           if (tag = Tag.where(alias: al).first) 
             @tags << tag unless (tag.alias == 'trash' or @tags.include?(tag))
           else
-            @response[:errors] << t('errors.tags_invalid')
+            @response[:errors] << t('errors.content.tags')
             break
           end
         end
@@ -167,25 +173,42 @@ class ThreadsController < ApplicationController
     end
 
     def validate_permission
+      check_defence_token
+      case @settings.defence[:dyson]
+      when :tau
+        # tau stuff
+      when :sigma
+        @response[:errors] << t('errors.dyson.sigma') if processing_thread?
+      when :omicron
+        @response[:errors] << t('errors.dyson.omicron') if @token == nil
+      end
+      return false unless @response[:errors].empty?
+      set_defence_token if @token == nil
       if @ip.banned?
         @response[:errors] << t('errors.banned')
         @response[:ban] = @ip.ban.jsonify
         return false
       end
+      if @ip.post_captcha_needed
+        validate_captcha
+        @response[:errors] << t('errors.captcha.old') if @captcha == nil
+        @response[:errors] << t('errors.captcha.invalid') if @captcha == false
+        @ip.post_captcha_needed = false if @captcha == true
+      end
       if processing_thread?
-        checking = @ip.last_thread
-        limit = @settings.thread_posting_speed
+        @checking = @ip.last_thread
+        limit = @settings.defence[:speed_limits][:ip][:thread]
       else
-        checking = @ip.last_post
-        limit = @settings.reply_posting_speed
+        @checking = @ip.last_post
+        limit = @settings.defence[:speed_limits][:ip][:post]
         if (@thread = RThread.get_by_rid(params[:rid].to_i))
           @post.r_thread_id = @thread.id
         else
           return not_found
         end
       end
-      delta = Time.now - checking
-      @response[:errors] << t('errors.posting_too_fast') if delta.to_i < limit
+      delta = Time.now - @checking
+      @response[:errors] << t('errors.speed_limit.ip') if delta.to_i < limit
       return @response[:errors].empty?
     end
 
@@ -199,22 +222,41 @@ class ThreadsController < ApplicationController
       @post.rid = IdCounter.get_next_rid(processing_thread?)
       @post.ip_id = @ip.id
       @post.message = parse(@post.message)
+      @post.defence_token_id = @token.id
       @post.save
+      if @token.updated_at < (Time.now - 1.hour)
+        @token.updated_at = @post.created_at
+        @token.save
+      end
       @tags.each { |tag| @post.tags << tag } if processing_thread?
       CometController.publish('/counters', get_counters)
       unless processing_thread?
+        limit = @settings.defence[:speed_limits][:captcha][:post]
         post_json = @post.jsonify([@file], @thread.rid)
         CometController.publish("/thread/#{@thread.rid}", post_json)
-        @response[:post] = post_json if params.has_key?(:returnpost)
+        if params.has_key?(:returnpost)
+          @response[:post] = post_json 
+        else
+          @response[:post_rid] = @post.rid
+        end
       else
+        limit = @settings.defence[:speed_limits][:captcha][:thread]
         post_json = @post.jsonify([@file])
+        Rails.cache.write("t/#{@post.rid}/f", post_json)
+        Rails.cache.write("t/#{@post.rid}/m", post_json)
         @response[:thread_rid] = @post.rid
       end
+      delta = Time.now - @checking
+      @ip.post_captcha_needed = true if delta.to_i < limit
       CometController.publish('/live', post_json)
       @response[:status] = 'success'
       @ip.update_last(@post)
     end
     @response[:status] = 'fail' unless @response[:errors].empty?
+    unless (@settings.defence[:dyson] == nil and @response[:errors].empty?)
+      @ip.post_captcha_needed = true 
+    end
+    set_captcha
     respond!
   end
 end

@@ -2,10 +2,8 @@
 
 class Captcha < ActiveRecord::Base
   validates_presence_of     :key, :word
-  validates_uniqueness_of   :key, :word
-
+  
   before_create do 
-    old_captcha.destroy if (old_captcha = Captcha.where(word: self.word).first)
     old_captcha.destroy if (old_captcha = Captcha.where(key: self.key).first)
     self.generate_image
   end
@@ -52,22 +50,22 @@ class Captcha < ActiveRecord::Base
         ['ньюфа',  %w( г ги жек жина жный )],
         ['олдфа',  %w( г ги жек жина жный )],
         ['шлю',    %w( ха хи шка шки хиненужны )],
-        ['пизд',   %w( а ец ецовый атый ато уй )],
+        ['пизд',   %w( а ец атый ато уй )],
         ['кукло',  %w( еб ебы бляди )],
-        ['',       %w( опхуй десу ормт кококо пошелвон кинцо новэй груша цэпэ )],
+        ['',       %w( опхуй десу ормт кококо пони пошелвон кинцо новэй груша цэпэ )],
         ['',       %w( безногим анома номад пистон атятя зой викентий вакаба )],
         ['',       %w( омикрон фрипорт мудрец капча сейдж ололо пахом параша )],
-        ['',       %w( номадница игортонет игорнет ногаемс ноугеймс форчан )],
+        ['',       %w( номадница игортонет игорнет ногаемс ногамес ноугеймс форчан )],
         ['',       %w( бугурт бомбануло баттхерт бутхурт багет пека йоба схб )],
         ['',       %w( инвайт вечервхату сгущенка пригорело пукан пердак пердачелло )],
         ['',       %w( рулетка деанон дионон кулстори хлебушек блогистан тыхуй )],
-        ['',       %w( омск гитлер хохлы анимеговно двощ двощер двощи петух )],
+        ['',       %w( омск гитлер хохлы анимеговно двощ двощер двощи петух очко очкопетух)],
         ['',       %w( шишка братишка поехавший лишнийствол удафком подтирач )],
         ['',       %w( хачи трубашатал ненависть рейдж алсо посаны ролл сладкийхлеб )],
         ['',       %w( малаца батя зделоли графон дрейкфейс короли джаббер писечка )],
         ['',       %w( номадница пативэн свиборг корован трент фрилансер кровь кишки )],
         ['',       %w( всесоснули сосач макака абу моча уебывай съеби трололо колчан )],
-        ['',       %w( пекацефал мыльцо тян тня розенмейден октокот хикка )]
+        ['',       %w( пекацефал мыльцо тян тня розенмейден октокот хикка харкач калчан )]
       ]
       word = words[rand(0..words.length-1)]
       word = word[0] + word[1][rand(0..word[1].length-1)]
@@ -84,20 +82,20 @@ class Captcha < ActiveRecord::Base
 
   def self.get_key(defence)
     if (record = Captcha.where(defensive: defence).first(order: RANDOM))
-      if record.defensive == defence
-        time_passed = Time.now - record.created_at
-        if time_passed > 3.minutes and time_passed < 6.minutes
-          return record.key
-        elsif time_passed > 6.minutes
-          Captcha.where("created_at < ?", (Time.now - 6.minutes)).destroy_all
-        end
+      time_passed = Time.now - record.created_at
+      if time_passed > 10.minutes and time_passed < 20.minutes
+        record.created_at = Time.now
+        record.save
+        return record.key
+      elsif time_passed > 20.minutes
+        Captcha.where("created_at < ?", (Time.now - 20.minutes)).destroy_all
       end
     end
     if defence
       word = String.new
       1.upto(8) do |i|
         word += Captcha.get_word
-        word += "\n" if [4, 8].include?(i)
+        word += "\n" if [4, 8].include?(i) 
       end
     else
       word = Captcha.get_word(cancer: true)
@@ -105,17 +103,19 @@ class Captcha < ActiveRecord::Base
     key = 100000000 + rand(899999999)
     record = Captcha.create(word: word, key: key, defensive: defence)
     return record.key
-  end
+  end 
 
-  def self.validate(word, key)
-    if (captcha = Captcha.where(key: key).first)
-      word          = word.to_s.mb_chars.downcase.gsub("\n", '').gsub(' ', '')
-      captcha.word  = captcha.word.mb_chars.downcase.gsub("\n", '').gsub(' ', '')
-      captcha.destroy
-      return (word == captcha.word)
-    else 
-      return nil
+  def self.validate(hash)
+    if (captcha = Captcha.where(key: hash[:challenge]).first)
+      if (Time.now - captcha.created_at) < 20.minutes
+        word = hash[:response].to_s.mb_chars.downcase.gsub("\n", '').gsub(' ', '')
+        captcha.word = captcha.word.mb_chars.downcase.gsub("\n", '').gsub(' ', '')
+        captcha.destroy
+        return (word == captcha.word)
+      end
     end
+    captcha.destroy if captcha
+    return nil
   end
 
   def generate_image

@@ -22,16 +22,22 @@ class ApplicationController < ActionController::Base
   def index
   end
 
+  def ping 
+    return render(text: 'pong')
+  end
+
   def get_tags
     @response[:tags] = Tag.all.to_json 
     @response[:counters] = get_counters
-    # set_captcha
+    set_captcha
+    check_defence_token
+    set_defence_token if @token == nil
     respond!
   end
 
   protected
   def respond!
-    return render(json: @response.to_json)
+    return render(json: @response)
   end
 
   def not_found
@@ -51,61 +57,63 @@ class ApplicationController < ActionController::Base
     }
   end
 
-  def set_captcha
-    @response[:captcha] = Captcha.get_key(false)
+  def set_captcha(defensive=false)
+    if @ip.post_captcha_needed
+      if (test = Captcha.where(key: session[:captcha]).first)
+        if (Time.now - test.created_at) < 20.minutes
+          @response[:captcha] = session[:captcha]
+          return
+        end        
+      end
+      @response[:captcha] = Captcha.get_key(defensive) 
+      session[:captcha] = @response[:captcha]
+    end
+  end
+
+  def validate_captcha
+    @captcha = nil
+    return unless params.has_key?(:captcha)
+    logger.info @settings.defence.inspect
+    if session[:captcha] == params[:captcha][:challenge].to_i
+      session[:captcha] == nil
+      @captcha = Captcha.validate(params[:captcha])
+    end
+  end
+
+  def set_defence_token
+    @token = DefenceToken.create
+    @response[:defence_token] = @token.hashname
+  end
+
+  def check_defence_token
+    @token = nil
+    if params.has_key?(:defence_token)
+      @token = DefenceToken.where(hashname: params[:defence_token]).first
+    end
   end
 
   def parse(text)
-    def bold(text)
-      "<b>#{text}</b>"
-    end
-
-    def italic(text)
-      "<i>#{text}</i>"
-    end
-
-    def strike(text)
-      " <s>#{text}</s> "
-    end
-
-    def underline(text)
-      "<u>#{text}</u>"
-    end
-
-    def spoiler(text)
-      "<span class='spoiler'>#{text}</span>"
-    end
-
-    def quote(text)
-      "<span class='quote'>&gt; #{text.strip}</span>"
-    end
-
-    def aquo(text)
-      "&laquo;#{text}&raquo;"
-    end
-
-    def link(href, text)
-      anon = ''
-      unless href.include?('freeport7.org')
-        anon = "http://anonym.to/?"
-      end
-      "<a href='#{anon + href}' target='_blank'>#{text}</a>"
-    end
-
     # это пиздец, мне надо руки оторвать
     text.strip!
     text.gsub!('&', '&amp;')
-    text.gsub!(/<<(.+?)>>/,     aquo('\1'))
+    text.gsub!(/<<(.+?)>>/,     '&laquo;\1&raquo;')
     text.gsub!('<', '&lt;')
     text.gsub!('>', '&gt;')
     text.gsub!('\'', '&#39;')
-    text.gsub!(/\*\*(.+?)\*\*/, bold('\1'))
-    text.gsub!(/\*(.+?)\*/,     italic('\1'))
-    text.gsub!(/__(.+?)__/,     underline('\1'))
-    text.gsub!(/(\s|^|\A)_(.+?)_(\s|$|\z)/,       strike('\2'))
-    text.gsub!(/%%(.+?)%%/,     spoiler('\1'))
+    text.gsub!(/\*\*(.+?)\*\*/, '<b>\1</b>')
+    text.gsub!(/\*(.+?)\*/,     '<i>\1</i>')
+    text.gsub!(/__(.+?)__/,     '<u>\1</u>')
+    text.gsub!(/(\s|^|\A)_(.+?)_(\s|$|\z)/,       ' <s>\2</s> ')
+    text.gsub!(/%%(.+?)%%/,     '<span class="spoiler">\1</span>')
     text.gsub!('--',            '&mdash;')
-    text.gsub!(/\[((http|https)\:\/\/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,4}(\/\S*)?) \|\| (.+?)\]/, link('\1', '\4'))
+    text.gsub!(/\[((http|https)\:\/\/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,4}(\/\S*)?) \|\| (.+?)\]/) do |href|
+      anon = ''
+      array = href.split('||')
+      href = array[0].gsub!('[', '').strip!
+      name = array[1].gsub!(']', '').strip!
+      anon = 'http://anonym.to/?' unless href.include?('freeport7.org')
+      " <a href='#{anon + href}' target='_blank'>#{name}</a> "
+    end
     text.gsub!(/( |^)(http|https)\:\/\/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,4}(\/\S*)?/) do |href|
       anon = ''
       href.strip!
@@ -164,7 +172,7 @@ class ApplicationController < ActionController::Base
       result
     end
     if @post.kind_of?(RPost)
-      text.gsub! /##(OP)|##(ОП)|##(op)|##(оп)/ do |op| # оппан гангнам стайл
+      text.gsub! /##(OP)|##(ОП)|##(op)|##(оп)/ do |op| # oppan gangnam style
         if @post.password == @thread.password
           url = url_for(action: 'show', rid: @thread.rid, anchor: "i#{@thread.rid}")      
           "<div class='proofmark'><a href='#{url}'>#{op}</a></div>"
@@ -176,7 +184,9 @@ class ApplicationController < ActionController::Base
     # if moder?
     #   text.gsub!("##ADMIN", "<span class='admin_proofmark'>Edison Trent</span>") if @moder.level == 3
     # end
-    text.gsub!(/^&gt;(.+)$/,  quote('\1'))
+    text.gsub!(/^&gt;(.+)$/) do |text| 
+      "<span class='quote'>&gt; #{text.strip}</span>"
+    end
     text.gsub!(/\r*\n(\r*\n)+/, '<br /><br />')
     text.gsub!(/\r*\n/,        '<br />')
     text.strip!

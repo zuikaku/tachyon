@@ -18,6 +18,11 @@ h1, h2, h3, blockquote, menu, ul, li
 center
   margin: 200px
 
+hr 
+  border: none
+  border-bottom: 1px dashed #aaa
+  margin: 25px 0px 25px 0px
+ 
 a
   color: #044983
   &:hover
@@ -43,7 +48,7 @@ header
   margin: 0 auto
   position: fixed
   top: 0
-  z-index: 10
+  z-index: 15
   h3 
     font-family: Freelancer, Agency FB, sans-serif
     color: #fff
@@ -111,7 +116,7 @@ footer
 
 #taglist
   position: fixed
-  z-index: 9
+  z-index: 14
   color: #eee
   right: -110px
   top: 0
@@ -137,12 +142,22 @@ footer
     margin-top: 0
     font-size: 16px
 
-#bottom_menu, #qr_form, #taglist, .manage_menu, #loading, #img_preview, .preview p
+#bottom_menu, #qr_form, #taglist, .manage_menu, #loading, #img_preview, .preview p, #settings
   background: #222
   color: white
   opacity: 0.9
   border: 1px solid #777
   //box-shadow: 0 0 4px rgba(0, 0, 0, 0.50), 0 -1px 0 rgba(0, 0, 0, 0.1) inset
+
+#qr_form, #settings
+  input, textarea
+    padding: 3px
+    font-family: "Trebuchet MS", Trebuchet, sans-serif
+    font-size: 13px
+    background: #222
+    border: none
+    border-bottom: 1px solid #aaa
+    color: white
 
 #qr_form
   display: table
@@ -153,7 +168,7 @@ footer
   position: fixed
   bottom: 28
   right: -750
-  z-index: 10
+  z-index: 12
   padding: 5px 25px 5px 15px
   #video_span, #file_span
     text-decoration: underline
@@ -167,19 +182,13 @@ footer
     color: #aaa
   #form_password
     width: 50px
+  #captcha_field 
+    display: none
   #sage
     margin-right: 20px
   #tag_field
     width: 30px
     margin-right: 10px
-  input, textarea
-    padding: 3px
-    font-family: "Trebuchet MS", Trebuchet, sans-serif
-    font-size: 13px
-    background: #222
-    border: none
-    border-bottom: 1px solid #aaa
-    color: #aaa
   .divider
     clear: both
     margin-bottom: 5px
@@ -195,6 +204,8 @@ footer
     display: none
   #form_title
     float: left
+    color: white
+    font-weight: bold
     width: 80%
   .form_submit
     float: right
@@ -210,6 +221,8 @@ footer
     height: 200px
     max-height: 200px
     color: white
+  #file_field
+    color: #aaa
   #file_field, #video_field
     border: none
     max-width: 210px    
@@ -241,6 +254,7 @@ footer
 
 #container 
   margin: 70px 15px 15px 15px
+  position: relative
 
 .post_link, .context_link
   display: inline-block
@@ -396,6 +410,10 @@ footer
     padding-bottom: 0
     color: #666
     background: none
+    .title
+      color: black
+      font-weight: bold
+      font-size: 16px
     span 
       margin-right: 5px
       &.sage
@@ -413,7 +431,7 @@ footer
   top: 45%
   display: block
   padding: 10px
-  z-index: 15
+  z-index: 16
   left: 48%
 
 #form_loading
@@ -424,6 +442,9 @@ footer
 #paginator
   color: #555
   margin-top: 20px
+  span
+    font-size: 14px
+    margin-right: 7px
   a 
     display: inline-block
     padding: 2px 8px 2px 8px
@@ -444,7 +465,8 @@ footer
   opacity: 1
 
 .errors
-  color: red
+  color: #f11
+  text-align: right
 
 #bottom_menu
   position: fixed
@@ -453,7 +475,7 @@ footer
   right: -5px
   padding: 10px
   padding-top: 5px
-  z-index: 9001
+  z-index: 12
   span
     cursor: pointer
     margin-right: 10px
@@ -475,4 +497,28 @@ footer
     display: table
     max-width: 60%
     position: relative
-    
+    border-color: #aaa
+
+#settings
+  position: fixed
+  font-size: 14px
+  color: #ccc
+  width: 650px
+  // height: 450px
+  display: none
+  z-index: 13
+  padding: 1px 20px 20px 20px
+  .close_button
+    font-size: 18px
+    font-weight: bold
+    float: right
+    color: red
+    &:hover
+      cursor: pointer
+      color: #06f
+  input
+    color: white
+    border: 1px solid #666
+  .threads_per_page
+    width: 30px
+    text-align: center

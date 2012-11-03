@@ -6,6 +6,7 @@ Tachyon::Application.routes.draw do
   scope "utility" do 
     match 'get_tags'    => 'application#get_tags', via: 'post'
     match 'get_post'    => 'threads#get_post', via: 'post'
+    match 'ping'        => 'application#ping', via: 'post'
   end
 
   match 'thread/:rid' => 'threads#show', constraints: { rid: /\d+/ }
