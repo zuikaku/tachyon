@@ -435,12 +435,16 @@ function initializeInterface() {
             router.navigate(href, {trigger: true});
         }
     });
-    cometClient = new Faye.Client('/comet', {
+    if (production == true) {
+        var address = 'comet.freeport7.org';
+    } else {
+        var address = '/comet';
+    }
+    cometClient = new Faye.Client(address, {
         timeout: 120,
         retry: 2
     });
     cometClient.disable('websoket');
-    cometClient.disable('autodisconnect');
     var countersSubscription = cometClient.subscribe('/counters', function(message) {
         header.setCounters(message);
         return false;
