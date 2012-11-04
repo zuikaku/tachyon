@@ -19,7 +19,5 @@ class CreateDefenceTokens < ActiveRecord::Migration
     add_index  :r_posts,   :defence_token_id
 
     add_column :settings_records, :defence, :text
-    SettingsRecord.destroy_all
-    SettingsRecord.create
   end
 end
