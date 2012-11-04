@@ -15,6 +15,13 @@ var FormView = Backbone.View.extend({
         'click .editbox b, .editbox i, .editbox u, .editbox s, .editbox span, .editbox a': 'markup',
         'focusin input, textarea': 'hidePlaceholder',
         'focusout input, textarea': 'showPlaceholder',
+        'keydown textarea': function(event)  {
+            if (event.ctrlKey && event.keyCode == 13) {
+                if (settings.get('ctrl_submit') == true) {
+                    $('#qr_form').submit();
+                }
+            }
+        }
     },
 
     initialize: function() {
@@ -74,7 +81,7 @@ var FormView = Backbone.View.extend({
             var sage = this.$el.find('#sage input').first().attr('checked') == 'checked';
             data.append('message[sage]', sage);
         }
-        if ($("#thread_container").length == 0) {
+        if (action == 'index') {
             data.append('returnpost', 'yeah sure');
         }
         $.ajax({
@@ -94,6 +101,7 @@ var FormView = Backbone.View.extend({
                     if (response.post != undefined) {
                         router.addPost(response.post, true);
                     } else if (response.thread_rid != undefined) {
+                        settings.toggleFavorite(response.thread_rid, 'add');
                         router.navigate('/thread/' + response.thread_rid, {trigger: true});
                     } else if (response.post_rid != undefined) {
                         waitToHighlight = response.post_rid;

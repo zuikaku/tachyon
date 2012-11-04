@@ -6,6 +6,7 @@ var SettingsView = Backbone.View.extend({
     events: {
         'click .close_button': 'close',
         'change input, select': 'onChange',
+        'click #settings_switch div': 'switchView',
     },
 
     initialize: function() {
@@ -20,6 +21,7 @@ var SettingsView = Backbone.View.extend({
             shadows:            false,
             lamer_buttons:      false,
             search_buttons:     true,
+            ctrl_submit:        true,
             style:              'tachyon',
         }
         var settingsLink = this;
@@ -60,12 +62,18 @@ var SettingsView = Backbone.View.extend({
         return (contains[0] == true);
     },
 
+    isHidden: function(object) {
+        var posts = this.contains(this.get('hidden_posts'), object);
+        var tags = this.contains(this.get('hidden_tags'), object);
+        return (posts[0] == true || tags[0] == true);
+    },
+
     toggleFavorite: function(threadRid, action) {
         var favorites = this.get('favorites');
         var contains = this.contains(this.get('favorites'), threadRid);
         if (contains[0] == false && action == 'add') {
-            if (favorites.length >= 20) {
-                alert('В избранном может быть не более 20 тредов.');
+            if (favorites.length >= 100) {
+                alert('В избранном может быть не более 100 тредов.');
                 return false;
             } 
             favorites.push(threadRid);
@@ -141,6 +149,14 @@ var SettingsView = Backbone.View.extend({
             } else {
                 value = false;
             }
+            if (element.hasClass('hide_tag') == true) {
+                if (value == true) {
+                    this.hide(element.attr('name'));
+                } else { 
+                    this.unhide(element.attr('name'));
+                }
+                return false;
+            }
         }
         this.set(element.attr('name'), value);
         switch (element.attr('name')) {
@@ -159,8 +175,10 @@ var SettingsView = Backbone.View.extend({
     _shadows: function() {
         if (this.get('shadows') == true) {
             $('.post').css('box-shadow', '0 1px 3px #d7d7d7');
+            $('.post').css('margin', "3px 0px 3px 0px");
         } else {
             $('.post').css('box-shadow', 'none');
+            $('.post').css('margin', "2px 0px 2px 0px");
         }
         return this;
     },
@@ -178,12 +196,29 @@ var SettingsView = Backbone.View.extend({
         return this;
     }, 
 
+    switchView: function(event) {
+        this.$el.find('.active').removeClass('active');
+        var link = $(event.currentTarget);
+        link.addClass('active');
+        if (link.hasClass("content_settings") == true) {
+            this.$el.find("#content_settings").css('display', 'block');
+            this.$el.find("#view_settings").css('display', 'none');
+        } else {
+            this.$el.find("#content_settings").css('display', 'none');
+            this.$el.find("#view_settings").css('display', 'block');
+        }
+        return false;
+    },
+
     render: function() {
         var settingsLink = this;
         var t = "<span title='закрыть' class='close_button'>×</span><br />";
-        t += "<label>"
-            + "Стиль: "
-            + "<select name='style'>";
+        t += "<div id='settings_switch'>"
+            + "<div class='view_settings active'>Внешний вид</div>"
+            + "<div class='content_settings'>Фильтр контента</div>"
+        + "</div>";
+        t += "<div id='view_settings'>"
+        t += "<label>Стиль: <select name='style'>";
             ['tachyon', 'photon', 'neutron'].forEach(function(style) {
                 t += "<option name='" + style + "'";
                 if (settingsLink.get('style') == style) {
@@ -203,9 +238,10 @@ var SettingsView = Backbone.View.extend({
         var booleans = {
             fixed_header:   'закрепить меню сверху',
             scroll_to_post: 'перематывать страницу к новому посту после его написания',
-            shadows:        'отрисовывать тени постов (могут замедлять прокрутку)',
+            ctrl_submit:    'отправлять сообщения при нажатии Ctrl+Return',
+            shadows:        'показывать тени постов (могут замедлять прокрутку)',
             lamer_buttons:  'показывать кнопки &laquo;вверх&raquo; и &laquo;вниз&raquo;',
-            search_buttons: 'показывать кнопки поиска картинки',
+            search_buttons: 'показывать кнопки поиска картинок',
         };
         $.each(booleans, function(option, name) {
             t += "<label><input class='" + option + "' name='" + option;
@@ -215,7 +251,26 @@ var SettingsView = Backbone.View.extend({
             }
             t += "/> " + name + "</label><br />";
         });
+        t += "</div><div id='content_settings'>";
+        t += "<br /><label><input type='checkbox' name='strict_hiding' value='" 
+        + "strict_hiding' ";
+        if (this.get('strict_hiding') == true) {
+            t += "checked='checked' ";
+        }
+        t += "/> включить &laquo;жёсткое&raquo; скрытие</label>";
+        t += "<p>Если жесткое скрытие включено, то скрытые вами треды полностью     \
+        исчезают с ваших глаз, безо всяких напоминаний. Это также распространяется  \
+        на треды в скрытых вами тэгах. Осторожно! Треды, в которых есть хотя бы     \
+        один из скрытых вами тэгов, не будут отображаться в обзоре совсем.</p>";
+        t += "</div>";
         this.el.innerHTML = t;
+        this.$el.find('#content_settings').css('display', 'none');
+        return this;
+    },
+
+    renderTags: function(tags) {
+        tags = "<span>Скрывать треды с тэгами: </span>" + tags;
+        this.$el.find("#content_settings").prepend(tags);
         return this;
     },
 });

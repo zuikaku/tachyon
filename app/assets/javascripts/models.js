@@ -5,8 +5,10 @@ var ThreadModel = Backbone.Model.extend({
         Backbone.Model.prototype.set.call(this, json);
         this.full = full;
         var posts = [];
-        for (var i=0; i < json_posts.length; i++) {
-            posts[i] = new PostModel(json_posts[i])
+        if (json_posts != undefined) {
+            for (var i=0; i < json_posts.length; i++) {
+                posts[i] = new PostModel(json_posts[i])
+            }
         }
         this.posts = new PostsCollection(posts);
         return this;

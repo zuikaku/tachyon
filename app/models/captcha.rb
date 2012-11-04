@@ -70,10 +70,11 @@ class Captcha < ActiveRecord::Base
       word = words[rand(0..words.length-1)]
       word = word[0] + word[1][rand(0..word[1].length-1)]
     else
-      letters = %w( ё й ц у к е н г ш щ з х ъ ф ы в а п р о л д ж э )
-      letters += %w( я ч с м и т ь б ю )
+      # letters = %w( ё й ц у к е н г ш щ з х ъ ф ы в а п р о л д ж э )
+      # letters += %w( я ч с м и т ь б ю )
+      letters = %w( щ з х ъ ш ж э ю ь ё й ф я ц ы ч )
       word = String.new
-      while word.length < rand(5..8)
+      6.times do
         word += letters[rand(0..letters.length) - 1]
       end
     end
@@ -91,11 +92,10 @@ class Captcha < ActiveRecord::Base
         Captcha.where("created_at < ?", (Time.now - 20.minutes)).destroy_all
       end
     end
-    if defence
+    if defence == true
       word = String.new
-      1.upto(8) do |i|
+      4.times do 
         word += Captcha.get_word
-        word += "\n" if [4, 8].include?(i) 
       end
     else
       word = Captcha.get_word(cancer: true)

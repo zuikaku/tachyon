@@ -9,6 +9,7 @@ Tachyon::Application.routes.draw do
     match 'ping'        => 'application#ping', via: 'post'
   end
 
+  match 'live' => 'threads#live'
   match 'thread/:rid' => 'threads#show', constraints: { rid: /\d+/ }
   match 'thread/:rid/reply' => 'threads#reply', constraints: { rid: /\d+/ }
   match 'thread/:rid/expand' => 'threads#expand', constraints: { rid: /\d+/ }

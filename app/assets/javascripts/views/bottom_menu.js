@@ -4,6 +4,8 @@ var BottomMenuView = Backbone.View.extend({
 
     events: {
         "click #qr_button": 'callReplyForm',
+        'click #up_button': 'goUp',
+        'click #down_button': 'goDown',
     },
 
     initialize: function() {
@@ -49,6 +51,22 @@ var BottomMenuView = Backbone.View.extend({
     },
 
     toggleLamerButtons: function(value) {
+        if (value == true) {
+            this.el.innerHTML += "<span id='down_button'>вниз</span>"
+            + "<span id='up_button'>вверх</span>";
+        } else {
+            this.$el.find("#down_button, #up_button").remove();
+        }
         return false;
-    }
+    },
+
+    goUp: function() {
+        $.scrollTo('0%');
+        return false;
+    },
+
+    goDown: function() {
+        $.scrollTo('100%');
+        return false;
+    },
 })

@@ -5,11 +5,8 @@ class ApplicationController < ActionController::Base
 
   before_filter do
     return render(text: 'pisya', status: 405) unless verified_request?
-    unless params[:controller] == 'captcha'
-      return render('index') if request.get? and request.headers["REQUEST_PATH"] != "/"
-      @ip = Ip.get(request.remote_ip.to_s)
-      @response = Hash.new
-    end
+    return render('index') if request.get? and request.headers["REQUEST_PATH"] != "/"
+    @response = Hash.new
   end
 
   after_filter do 
@@ -23,13 +20,15 @@ class ApplicationController < ActionController::Base
   end
 
   def ping 
+    @ip = Ip.get(request.remote_ip.to_s)
     return render(text: 'pong')
   end
 
   def get_tags
+    @ip = Ip.get(request.remote_ip.to_s)
     @response[:tags] = Tag.all.to_json 
     @response[:counters] = get_counters
-    set_captcha
+    set_captcha if @ip.post_captcha_needed
     check_defence_token
     set_defence_token if @token == nil
     respond!
@@ -58,22 +57,22 @@ class ApplicationController < ActionController::Base
   end
 
   def set_captcha(defensive=false)
-    if @ip.post_captcha_needed
-      if (test = Captcha.where(key: session[:captcha]).first)
+    if (test = Captcha.where(key: session[:captcha]).first)
+      if test.defensive == defensive
         if (Time.now - test.created_at) < 20.minutes
           @response[:captcha] = session[:captcha]
           return
-        end        
-      end
-      @response[:captcha] = Captcha.get_key(defensive) 
-      session[:captcha] = @response[:captcha]
+        end
+      end        
     end
+    @response[:captcha] = Captcha.get_key(defensive) 
+    logger.info "\n\napplication: #{defensive}\n\n"
+    session[:captcha] = @response[:captcha]
   end
 
   def validate_captcha
     @captcha = nil
     return unless params.has_key?(:captcha)
-    logger.info @settings.defence.inspect
     if session[:captcha] == params[:captcha][:challenge].to_i
       session[:captcha] == nil
       @captcha = Captcha.validate(params[:captcha])

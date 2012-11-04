@@ -39,8 +39,8 @@ var HeaderView = Backbone.View.extend({
             t += "<li><a href='#' id='tags_link'>тэги ↓</a></li>"
             t += "<li><a href='#' id='settings_link'>настройки</a></li>"
             t += "<li><a href='/about/'>информация</a></li>"
-            t += "<li><a href='/favorites/'>избранное</a></li>"
-            t += "<li><a href='/live/'>live!</a></li>"
+            t += "<li><a id='favorites_link' href='/favorites/'>избранное</a></li>"
+            t += "<li><a id='live_link' href='/live/'>live!</a></li>"
         t += "</menu>"
         this.$el.append(t);
         if ($.browser.chrome) {

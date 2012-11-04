@@ -97,22 +97,34 @@ var PreviewsView = Backbone.View.extend({
     getPost: function(postRid, preview) {
         postRid = parseInt(postRid);
         var post = null;
-        threadsCollection.each(function(thread) {
-            if (post != null) {
-                return true;
-            }
-            post = previews.cache.where({rid: postRid});
-            if (post.length > 0) {
-                post = post[0].clone();
+        var target = null;
+        var query = threadsCollection.where({rid: postRid});
+        if (query.length > 0) {
+            target = query[0];
+        } else {
+            if (action == 'live') {
+                query = livePostsCollection.where({rid: postRid});
+                if (query.length > 0) {
+                    target = query[0];
+                }
             } else {
-                post = thread.posts.where({rid: postRid});
-                if (post.length > 0) {
-                    post = post[0].clone();
-                } else {
-                    post = null;
+                threadsCollection.each(function(thread) {
+                    query = thread.posts.where({rid: postRid});
+                    if (query.length > 0) {
+                        target = query[0];
+                    }
+                });
+            }
+            if (target == null) {
+                query = previews.cache.where({rid: postRid});
+                if (query.length > 0) {
+                    target = query[0];
                 }
             }
-        });
+        }
+        if (target != null) {
+            post = target.clone();
+        }
         if (post != null) {
             this.showPost(post, preview);
         } else {

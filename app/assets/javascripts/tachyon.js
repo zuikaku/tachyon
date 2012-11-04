@@ -20,30 +20,43 @@
 
 
 var VERSION = 0.3;
+var NAME = 'Tachyon';
 
 $(document).ready(function() {
 
-// var section, controller, action,
-// mouseOverElement, loadingTimeout, previousPath, cometClient,
-// cometSubscription, postPreviews, mainContainer, loadingIndicator, 
-// paginator, bottomMenu = null;
-cometSubscription = null;
-previousPath = null;
-waitToHighlight = null;
-section = null;
-header = null;
-bottomMenu = null;
+
+cometSubscription   = null;
+previousPath        = null;
+waitToHighlight     = null;
+section             = null;
+header              = null;
+bottomMenu          = null;
+loadingTimeout      = null;
+threadsCollection   = null;
+livePostsCollection = null;
+currentTag          = null;
 
 var MainRouter = Backbone.Router.extend({
     routes: {
         '':                     'toRoot',
+        'live/':                'live',
+        'live':                 'trailingSlash',
         'thread/:rid':          'show',
         ':rid.html':            'showOldHack',
         ':tag/':                'index',
-        ':tag':                 'index',
+        ':tag':                 'trailingSlash',
         ':tag/page/:page':      'showPage',
         '*path':                'notFound'
     }, 
+
+    setTitle: function(title) {
+        var set = NAME;
+        if (title != undefined) {
+            set += " - " + title;
+        }
+        document.title = set;
+        return false;
+    },
 
     before: function(response) {
         controller = null;
@@ -66,6 +79,10 @@ var MainRouter = Backbone.Router.extend({
         return true;
     },
 
+    trailingSlash: function() {
+        this.navigate(document.location.pathname + "/", {trigger: true});
+    },
+
     toRoot: function() {
         this.navigate("/~/", {trigger: true});
         return false;
@@ -83,6 +100,44 @@ var MainRouter = Backbone.Router.extend({
         return false;
     },
 
+    live: function() {
+        showLoadingIndicator();
+        $.ajax({
+            type:       'post',
+            url:        document.location,
+            success:    function(response) {
+                if (router.before(response) == false) {
+                    return false;
+                }
+                router.setTitle('LIVE!');
+                controller = 'threads'; action = 'live';
+                form.targetOn('create');
+                var liveContainer = $("<div id='live_container'></div>");
+                section.html(liveContainer);
+                hideLoadingIndicator();
+                header.$el.find('#live_link').addClass('active');
+                window.scrollTo(0, 0);
+                livePostsCollection = new PostsCollection;
+                threadsCollection = new ThreadsCollection;
+                var handleMessage = function(message) {
+                    if (message.tags == undefined) {
+                        router.addPost(message);
+                    } else {
+                        var thread = router.buildThread(message, false);
+                        liveContainer.prepend(thread.container);
+                        threadsCollection.add(thread.model);
+                    }
+                }
+                response.messages.forEach(handleMessage);
+                cometSubscription = cometClient.subscribe('/live', handleMessage);
+                adjustFooter();
+                return false;
+            },
+            error: router.showError, 
+        });
+        return false;
+    },
+
     show: function(rid) {
         showLoadingIndicator();
         $.ajax({
@@ -92,6 +147,19 @@ var MainRouter = Backbone.Router.extend({
                 if (router.before(response) == false) {
                     return false;
                 }
+                if (response.thread.title.length > 0) {
+                    var title = response.thread.title;
+                } else {
+                    var title = "тред №" + response.thread.rid;
+                }
+                title += " (";
+                for (var i=0; i < response.thread.tags.length; i++) {
+                    title += response.thread.tags[i].name;
+                    if (i != response.thread.tags.length-1) {
+                        title += ", ";
+                    }
+                }
+                router.setTitle(title + ")");
                 controller = 'threads'; action = 'show';
                 form.targetOn('reply', rid);
                 section.html('');
@@ -107,6 +175,7 @@ var MainRouter = Backbone.Router.extend({
                 }
                 checkHash();
                 cometSubscription = cometClient.subscribe('/thread/' + rid, router.addPost);
+                adjustFooter();
                 return false;
             },
             error: router.showError,
@@ -121,25 +190,40 @@ var MainRouter = Backbone.Router.extend({
         if (page != 1) {
             link += '/page/' + page;
         }
+        var data = {amount: settings.get('threads_per_page')};
+        if (tag == 'favorites') {
+            data.rids = settings.get('favorites');
+        }
+        if (settings.get('strict_hiding') == true) {
+            data.hidden_posts = settings.get('hidden_posts');
+            data.hidden_tags  = settings.get('hidden_tags' );
+        }
         $.ajax({
             type: 'post',
             url:  document.location,
-            data: {amount: settings.get('threads_per_page')},
+            data: data,
             success: function(response) {
                 if (router.before(response) == false) {
                     return false;
                 }
                 controller = 'threads'; action = 'index';
                 form.targetOn('create');
-                if (tag == '~') {
-                    var tag_selector = "overview_tag";
-                    form.setTag('');
-                } else {
-                    var tag_selector = tag;
-                    form.setTag(tag);
-                }
-                tagList.$el.find("#" + tag_selector).addClass('selected');
+                form.setTag('');
                 header.$el.find("#tags_link").addClass('active');
+                if (tag == '~') {
+                    tagList.$el.find("#overview_tag").addClass('selected');
+                    router.setTitle('Обзор');
+                } else if (tag == 'favorites') {
+                    header.$el.find(".active").removeClass('active');
+                    header.$el.find("#favorites_link").addClass('active');
+                    router.setTitle('Избранное');
+                } else {
+                    var tagElement = tagList.$el.find("#" + tag);
+                    tagElement.addClass('selected');
+                    form.setTag(tag);
+                    router.setTitle(tagElement.html());
+                }
+                currentTag = tag;
                 var threads = [];
                 section.html('');
                 hideLoadingIndicator();
@@ -153,7 +237,13 @@ var MainRouter = Backbone.Router.extend({
                     }
                 }
                 threadsCollection = new ThreadsCollection(threads);
-                section.append(paginator.render(response.pages, page, tag).el);
+                if (threadsCollection.length == 0) {
+                    section.prepend('<div class="emptiness">Тут пусто, нет ничего вообще.</div>')   
+                }
+                if (response.pages != undefined) {
+                    section.append(paginator.render(response.pages, page, tag).el);
+                }
+                adjustFooter();
                 return false;
             },
             error: router.showError,
@@ -170,19 +260,27 @@ var MainRouter = Backbone.Router.extend({
             var container = $("<div class='thread_container'></div>");
         }
         container.append(thread.view.render().el);
-        thread.posts.each(function(post) {
-            post.view = new PostView({id: 'i' + post.get('rid')}, post);
-            container.append(post.view.render().el);
-        });
+        if (thread.view.hidden == false) {
+            thread.posts.each(function(post) {
+                post.view = new PostView({id: 'i' + post.get('rid')}, post);
+                container.append(post.view.render().el);
+            });
+        }
         return { container: container, model: thread }
     },
 
     addPost: function(post_json, scroll) {
         var post = new PostModel(post_json);
-        var thread = threadsCollection.where({rid: post.get('thread_rid')})[0];
-        thread.posts.add(post);
-        post.view = new PostView({id: 'i' + post.get('rid')}, post);
-        thread.view.$el.parent().append(post.view.render(true).el);
+        if (action == 'live') {
+            post.view = new PostView({id: 'i' + post.get('rid')}, post);
+            livePostsCollection.add(post);
+            $('#live_container').prepend(post.view.render(true).el);
+        } else {
+            var thread = threadsCollection.where({rid: post.get('thread_rid')})[0];
+            thread.posts.add(post);
+            post.view = new PostView({id: 'i' + post.get('rid')}, post);
+            thread.view.$el.parent().append(post.view.render(true).el);
+        }
         if (scroll == true) {
             post.view.highlight();
             if (settings.get('scroll_to_post') == true) {
@@ -194,19 +292,25 @@ var MainRouter = Backbone.Router.extend({
                 if (post.get('rid') == waitToHighlight) {
                     if (settings.get('scroll_to_post') == true) {
                         post.view.scrollTo().highlight();
-                        document.location.hash = 'i' + waitToHighlight;
+                        if (action != 'live') {
+                            document.location.hash = 'i' + waitToHighlight;
+                        }
                     }
                     waitToHighlight = null;
                 }
             }
         }, 100);
+        adjustFooter();
         return false;
     },
 
     notFound: function() {
-        section.html('<h1> not found </h1>');
+        var t = "<div class='not_found'><h1>404</h1>";
+        t += "<span>По этой ссылке ничего нет. Совсем.</span></div>";
+        section.html(t);
         bottomMenu.vanish();
         hideLoadingIndicator();
+        adjustFooter();
         return this;
     },
 
@@ -221,6 +325,7 @@ var MainRouter = Backbone.Router.extend({
         } else {
             section.html(response.responseText);
         }
+        adjustFooter();
         return this;
     },
 });
@@ -263,11 +368,22 @@ function hideLoadingIndicator() {
         loadingTimeout = null;
     }
     loadingIndicator.css('display', 'none');
+    return false;
 }
 
 function adjustAbsoluteElements() {
     tagList.adjust();
     settings.adjust();
+    adjustFooter();
+}
+
+function adjustFooter () {
+    if (mainContainer.height() < (window.innerHeight - 100)) {
+        $('footer').css({position: 'absolute', bottom: 0});
+    } else {
+        $('footer').css({position: 'static', bottom: 'none'});
+    }
+    return false;
 }
 
 function checkHash() {
@@ -329,13 +445,13 @@ settings = new SettingsView;
 header = new HeaderView;
 tagList = new TagListView;
 if (tagList.gotTags == true) {
+    settings.renderTags(tagList.renderTagTable(5, true));
     mainContainer = $('#main_container');
     loadingIndicator = $("#loading");
     router = new MainRouter;
     form = new FormView;
     bottomMenu = new BottomMenuView;
     paginator = new PaginatorView;
-    threadsCollection = null;
     previews = new PreviewsView;
     initializeInterface();
     return false;

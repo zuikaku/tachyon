@@ -3,14 +3,54 @@ var TagListView = Backbone.View.extend({
     id:         'taglist',
     el:         '',
     gotTags:    false,
+    tagsArray:  [],
 
     initialize: function() {
         _.bindAll(this, 'render');
         this.render();
     },
 
+    renderTagTable: function(inRow, checkbox) {
+        var tags = this.tagsArray.slice(0);
+        var rows = parseInt(tags.length / inRow) + 1;
+        var t = "<table class='tags_table'";
+        if (checkbox == true) {
+            t += " cellspacing='15'";
+        }
+        t += ">";
+        for (var i = 0; i < rows; i++) {
+            t += "<tr>";
+            var array = [];
+            for (var a = 0; a < inRow; a++) {
+                array.push(tags[a]);
+            }
+            array.forEach(function(tag) {
+                t += "<td>";
+                if (tag != undefined) {
+                    var currentTag = tags.pop();
+                    var link = "/" + currentTag.alias + "/";
+                    if (checkbox == true) {
+                        t += "<label><input type='checkbox' class='hide_tag' name='" +
+                        currentTag.alias + "' ";
+                        if (settings.isHidden(currentTag.alias) == true) {
+                            t += "checked='checked' ";
+                        }
+                        t += "/> " + currentTag.name + "</label>";
+                    } else {
+                        t += "<a id='" + currentTag.alias + "' href='" +
+                        link + "'>" + link + ' ' + currentTag.name + "</a>";
+                    }
+                }
+                t += "</td>";
+            });
+            t += "</tr>";
+        }
+        t += "</table>";
+        return t;
+    },
+
     render: function() {
-        var t = "<a href='/~/' id ='overview_tag'>/~/ Обзор</a><table>"
+        var t = "<a href='/~/' id ='overview_tag'>/~/ Обзор</a>"
         var taglist = this;
         var token = {};
         if (settings.get('defence_token') != undefined) {
@@ -29,23 +69,8 @@ var TagListView = Backbone.View.extend({
                 if (response.defence_token != undefined) {
                     settings.set('defence_token', response.defence_token);
                 }
-                var tags_array = JSON.parse(response.tags);
-                var rows = parseInt(tags_array.length/2) + 1;
-                for (var i = 0; i < rows; i++) {
-                    t += "<tr>";
-                    $.each([tags_array[0], tags_array[1]], function(index, test_tag) {
-                        t += "<td>";
-                        if (test_tag != undefined) {
-                            tag = tags_array.pop();
-                            link = tag.alias + "/";
-                            t += "<a id='" + tag.alias + "' href='/" + link + "'>/";
-                            t += link + " " + tag.name + "</a>";
-                        }
-                        t += "</td>";
-                    })
-                    t += "</tr>";
-                }
-                t += "</table>";
+                taglist.tagsArray = JSON.parse(response.tags);
+                t += taglist.renderTagTable(3, false);
                 taglist.gotTags = true;
                 return false;
             },
