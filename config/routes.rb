@@ -1,7 +1,7 @@
 Tachyon::Application.routes.draw do
   root to: 'application#index'
 
-  faye_server '/comet', timeout: 180 
+  faye_server '/comet', timeout: 180
 
   scope "utility" do 
     match 'get_tags'    => 'application#get_tags', via: 'post'

@@ -367,7 +367,7 @@ function setMouseOver() {
 function showLoadingIndicator() {
     loadingTimeout = setTimeout(function () {
         loadingIndicator.css('display', 'block');
-    }, 300);
+    }, 450);
 }
 
 function hideLoadingIndicator() {
@@ -437,8 +437,10 @@ function initializeInterface() {
     });
     cometClient = new Faye.Client('/comet', {
         timeout: 120,
-        retry: 5
+        retry: 2
     });
+    cometClient.disable('websoket');
+    cometClient.disable('autodisconnect');
     var countersSubscription = cometClient.subscribe('/counters', function(message) {
         header.setCounters(message);
         return false;
