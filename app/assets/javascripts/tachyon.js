@@ -168,8 +168,16 @@ var MainRouter = Backbone.Router.extend({
                 var thread = router.buildThread(response.thread, true);
                 section.append(thread.container);
                 threadsCollection = new ThreadsCollection([thread.model]);
-                thread.container.before("<a href='/~/' class='back_link'>← Назад</a>");
-                thread.container.after("<a href='/~/' class='back_link'>← Назад</a>");
+                var buttons = "<div class='thread_buttons'><a href='/~/' class='back_link'>← Назад</a>" 
+                + "<a href='#' class='show_all_pictures_button'>Развернуть картинки</a></div>";
+                thread.container.before(buttons);
+                thread.container.after(buttons);
+                $('.show_all_pictures_button').unbind().click(function(event) {
+                    event.preventDefault();
+                    var threadToShowPictures = threadsCollection.first().view;
+                    threadToShowPictures.showAllPictures();
+                    return false;
+                });
                 if (previousPath != null) {
                     $('.back_link').attr('href', previousPath);
                 }

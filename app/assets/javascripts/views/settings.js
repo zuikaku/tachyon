@@ -22,6 +22,7 @@ var SettingsView = Backbone.View.extend({
             lamer_buttons:      false,
             search_buttons:     true,
             ctrl_submit:        true,
+            mamka:              false,
             style:              'tachyon',
         }
         var settingsLink = this;
@@ -163,6 +164,7 @@ var SettingsView = Backbone.View.extend({
             case 'fixed_header':    this._fixed_header();   break;
             case 'shadows':         this._shadows();        break;
             case 'lamer_buttons':   this._lamer_buttons();  break;
+            case 'mamka':           this._mamka();          break;
         }
         return false;
     },
@@ -188,10 +190,19 @@ var SettingsView = Backbone.View.extend({
         return this;
     },
 
+    _mamka: function() {
+        if (this.get('mamka') == true) {
+            $('.file_container img').css('opacity', 0.2);
+        } else {
+            $('.file_container img').css('opacity', 1);
+        }
+    },
+
     _set: function() {
-        // this.
+        this.
         //     // _fixed_header().
         //     // _lamer_buttons().
+                _mamka();
         //     // _shadows();
         return this;
     }, 
@@ -242,6 +253,7 @@ var SettingsView = Backbone.View.extend({
             shadows:        'показывать тени постов (могут замедлять прокрутку)',
             lamer_buttons:  'показывать кнопки &laquo;вверх&raquo; и &laquo;вниз&raquo;',
             search_buttons: 'показывать кнопки поиска картинок',
+            mamka:          'включить функцию &laquo;мамка в комнате&raquo;'
         };
         $.each(booleans, function(option, name) {
             t += "<label><input class='" + option + "' name='" + option;

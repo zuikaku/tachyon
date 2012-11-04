@@ -1,0 +1,22 @@
+source 'https://rubygems.org'
+
+gem 'bundler'
+gem 'rvm'
+gem 'win32-open3-19'
+gem 'rails', '3.2.1'
+gem 'sqlite3'
+gem 'faye-rails'
+gem 'rake'
+gem 'execjs'
+gem 'therubyracer'
+group :assets do
+  gem 'sass-rails',   '~> 3.2.3'
+  gem 'uglifier', '>= 1.0.3'
+  gem 'yui-compressor'
+end
+gem 'jquery-rails', require: 'RMagick'
+gem 'rmagick'
+gem 'bundler'
+gem 'haml', '3.1.6'
+gem 'thin'
+gem 'yajl-ruby'

@@ -144,6 +144,9 @@ var ThreadView = Backbone.View.extend({
             t += "</span>";
             $(event.currentTarget).append(t);
         }
+        if (settings.get('mamka') == true) {
+            $(event.currentTarget).find('img').css('opacity', 1);   
+        }
         return false;
     },
 
@@ -152,6 +155,9 @@ var ThreadView = Backbone.View.extend({
             $('.file_search').remove();
         }
         $('.play_button').css('opacity', 0.7);
+        if (settings.get('mamka') == true) {
+            $(event.currentTarget).find('img').css('opacity', 0.2);   
+        }
         return false;
     },
 
@@ -268,6 +274,9 @@ var ThreadView = Backbone.View.extend({
                 t += "<img src='/assets/ui/play.png' class='play_button' />";
             }
             t += "<img src='" + file.url_small + "' ";
+            if (settings.get('mamka') == true) {
+                t += 'style="opacity: 0.2;" ';
+            }
             if (file.thumb_rows != null) {
                 t += "width=" + file.thumb_columns;
                 t += " height=" + file.thumb_rows;
