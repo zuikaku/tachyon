@@ -14,8 +14,8 @@ group :assets do
   gem 'uglifier', '>= 1.0.3'
   gem 'yui-compressor'
 end
-gem 'jquery-rails', require: 'RMagick'
-gem 'rmagick'
+gem 'jquery-rails'
+gem 'rmagick', require: 'RMagick'
 gem 'bundler'
 gem 'haml', '3.1.6'
 gem 'thin'
