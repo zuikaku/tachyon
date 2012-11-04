@@ -3,7 +3,7 @@ require File.expand_path('../application', __FILE__)
 
 # RANDOM = 'RANDOM()' if Rails.env.development?
 # RANDOM = 'RAND()' if Rails.env.production?
-RANDOM = 'RAND()'
+RANDOM = 'RANDOM()'
 
 Haml::Template.options[:format]     = :html5
 

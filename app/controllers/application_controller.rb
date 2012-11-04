@@ -26,7 +26,7 @@ class ApplicationController < ActionController::Base
 
   def get_tags
     @ip = Ip.get(request.remote_ip.to_s)
-    @response[:tags] = Tag.all.to_json 
+    @response[:tags] = Tag.all
     @response[:counters] = get_counters
     set_captcha if @ip.post_captcha_needed
     check_defence_token
