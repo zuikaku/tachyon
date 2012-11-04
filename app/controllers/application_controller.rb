@@ -124,7 +124,7 @@ class ApplicationController < ActionController::Base
     @id_counter = 0
     @new_references = []
     text.gsub! /&gt;&gt;(\d+)/ do |id|
-      if @id_counter < @settings.max_references_per_post
+      if @id_counter < 10
         @id_counter += 1
         id = id[8..id.length].to_i
         if @thread and id == @thread.rid
@@ -153,7 +153,7 @@ class ApplicationController < ActionController::Base
     @id_counter = 0
     text.gsub! /##(\d+)/ do |id|
       result = "#{id}"
-      if @id_counter < @settings.max_references_per_post
+      if @id_counter < 10
         @id_counter += 1
         id = id[2..id.length].to_i
         post = RPost.get_by_rid(id)
