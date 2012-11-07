@@ -49,8 +49,10 @@ class ApplicationController < ActionController::Base
   end
 
   def mobile_off
-    if request.headers['SERVER_NAME'][0..1] == 'm.'
-      path = request.headers['HTTP_HOST'].gsub('m.', '')
+    server = 'SERVER_NAME'
+    server = 'HTTP_' + server if Rails.env.production?
+    if request.headers[server][0..1] == 'm.'
+      path = request.headers[server].gsub('m.', '')
       return redirect_to("http://#{path}/utility/mobile-off")
     else
       session[:dont_force_mobile] = true
@@ -78,12 +80,14 @@ class ApplicationController < ActionController::Base
   end
 
   def check_mobile
-    @mobile = (request.headers['HTTP_HOST'][0..1] == 'm.')
+    server = 'SERVER_NAME'
+    server = 'HTTP_' + server if Rails.env.production?
+    @mobile = (request.headers[server][0..1] == 'm.')
     if (request.user_agent.to_s.downcase =~ MOBILE_USER_AGENTS) != nil
       unless @mobile
         unless session[:dont_force_mobile] == true
           @mobile = true
-          path = request.headers['HTTP_HOST']
+          path = request.headers[server]
           return redirect_to("http://m.#{path}#{request.headers['REQUEST_PATH']}")
         end
       end
