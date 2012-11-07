@@ -28,8 +28,9 @@ class ApplicationController < ActionController::Base
 
   def index
     if @mobile == true
-      redirect_to(controller: 'threads', action: 'index', 
-                tag: '~', trailing_slash: true)
+      path = request.headers['HTTP_HOST']
+      path = request.headers['HTTP_SERVER_NAME'] if Rails.env.production?
+      return redirect_to("http://#{path}/~/")
     end
   end
 
@@ -81,7 +82,7 @@ class ApplicationController < ActionController::Base
 
   def check_mobile
     server = 'SERVER_NAME'
-    server = 'HTTP_' + server if Rails.env.production?
+    server = 'HTTP_SERVER_NAME' if Rails.env.production?
     @mobile = (request.headers[server][0..1] == 'm.')
     if (request.user_agent.to_s.downcase =~ MOBILE_USER_AGENTS) != nil
       unless @mobile
