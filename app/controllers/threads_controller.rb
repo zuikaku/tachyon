@@ -159,8 +159,9 @@ class ThreadsController < ApplicationController
     elsif @tag == 'favorites'
       return redirect_to(:root) if @mobile == true 
       return not_found if params[:rids].empty?
+      rids = ERB::Util.html_escape(params[:rids].join(",")).gsub!(";", "").gsub!('`', '')
       thread_rids = RThread.connection.select_all("SELECT r_threads.rid FROM r_threads
-        WHERE r_threads.rid IN (#{params[:rids].join(',')})
+        WHERE r_threads.rid IN (#{rids})
         ORDER BY bump DESC LIMIT #{amount} OFFSET #{offset}")
       total = params[:rids].size
     else
