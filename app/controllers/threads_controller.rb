@@ -11,8 +11,7 @@ class ThreadsController < ApplicationController
 
   def index
     if request.get? and request.headers['QUERY_STRING'].include?('tag=')
-      return redirect_to(action: 'index', tag: request.headers['QUERY_STRING'].split('=')[1],
-        trailing_slash: true)
+      return redirect_to("/#{request.headers['QUERY_STRING'].split('=')[1]}/")
     else
       show_page(1)
     end
@@ -158,8 +157,7 @@ class ThreadsController < ApplicationController
       end
     elsif @tag == 'favorites'
       return redirect_to(:root) if @mobile == true 
-      return not_found if params[:rids].empty?
-      rids = ERB::Util.html_escape(params[:rids].join(",")).gsub!(";", "").gsub!('`', '')
+      rids = ERB::Util.html_escape(params[:rids].join(",")).gsub(";", "").gsub('`', '')
       thread_rids = RThread.connection.select_all("SELECT r_threads.rid FROM r_threads
         WHERE r_threads.rid IN (#{rids})
         ORDER BY bump DESC LIMIT #{amount} OFFSET #{offset}")

@@ -34,7 +34,7 @@
     <%
       minutes = file[:video_duration] / 60
       seconds = file[:video_duration] - minutes*60
-      seconds = "0" + seconds if seconds < 10
+      seconds = "0" + seconds.to_s if seconds < 10
     %>
     <%= minutes %>:<%= seconds %>
   <% else %>  
