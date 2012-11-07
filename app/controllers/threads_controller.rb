@@ -10,8 +10,10 @@ class ThreadsController < ApplicationController
   end
 
   def index
-    if request.get? and request.headers['QUERY_STRING'].include?('tag=')
-      return redirect_to("/#{request.headers['QUERY_STRING'].split('=')[1]}/")
+    if @mobile == true and request.headers['QUERY_STRING'].include?('tag=')
+      path = request.headers['HTTP_HOST']
+      path = request.headers['HTTP_SERVER_NAME'] if Rails.env.production?
+      return redirect_to("http://#{path}/#{request.headers['QUERY_STRING'].split('=')[1]}/")
     else
       show_page(1)
     end
