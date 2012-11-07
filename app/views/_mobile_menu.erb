@@ -9,20 +9,23 @@
     <br />
     онлайн: <span><%= @counters[:online] %></span>
   </div>
-  <div id="taglist">
-    <%= cache("menu/#{params[:tag].to_s}") do %>
-      <%
-        active = ""
-        active = 'class="active"' if @tag == '~'
-      %>
-      <a href="/~/" style="font-weight: bold;" <%= active.html_safe %>>Обзор</a>    
-      <% Tag.all.each do |tag| %>
+  <%= cache("menu/#{params[:tag].to_s}") do %>
+    <form id="taglist" action=".">
+      <input type="submit" value="Перейти к тэгу:" />
+      <select name="tag">
         <%
           active = ""
-          active = 'class="active"' if @tag == tag
+          active = 'selected="selected"' if @tag == '~'
         %>
-        <a href="/<%= tag.alias %>/" <%= active.html_safe %>><%= tag.name %></a>    
-      <% end %>
-    <% end %>
-  </div>
+        <option value="~" <%= active.html_safe %>>Обзор</a>    
+        <% Tag.all.each do |tag| %>
+          <%
+            active = ""
+            active = 'selected="selected"' if @tag == tag
+          %>
+          <option value="<%= tag.alias %>" <%= active.html_safe %>><%= tag.name %></a>    
+        <% end %>
+      </select>
+    </form>
+  <% end %>
 </div>

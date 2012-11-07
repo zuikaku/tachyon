@@ -1,10 +1,37 @@
-<% width = "" %>
+<% 
+  max = 150
+  def resize_to_fit(file, max)
+    width_scale = max.to_f / file[:thumb_columns].to_f
+    height_scale = max.to_f / file[:thumb_rows].to_f
+    if width_scale > height_scale
+      scale = height_scale
+    else
+      scale = width_scale
+    end
+    file[:thumb_columns] *= scale
+    file[:thumb_rows] *= scale
+    return file
+  end
+
+  file[:thumb_columns] = 300 if file[:thumb_columns] == nil
+  file[:thumb_rows] = 220 if file[:thumb_rows] == nil
+
+  if file[:is_picture] == true and file[:resized] == false
+    file[:thumb_columns] = file[:columns]
+    file[:thumb_rows] = file[:rows]
+  end
+
+  if file[:thumb_columns] > max or file[:thumb_rows] > max
+    file = resize_to_fit(file, max)
+  end  
+
+  width = "width=\"#{file[:thumb_columns]}\" height=\"#{file[:thumb_rows]}\""
+%>
 
 <span class="file_info">
   <% if file[:extension] == 'video' and file[:video_title] != nil %>
     Видео: &laquo;<a href="<%= file[:url_full] %>"><%= file[:video_title] %></a>&raquo;
     <%
-      width = 'width="300" height="220"'
       minutes = file[:video_duration] / 60
       seconds = file[:video_duration] - minutes*60
       seconds = "0" + seconds if seconds < 10
@@ -20,11 +47,6 @@
 </span>
 <div class="file_container">
   <a href="<%= file[:url_full] %>" target="blank">
-    <% if file[:extension] == 'video' %>
-      <%= image_tag('ui/play.png', class: 'play_button') %>
-    <% else 
-      width = "width=\"#{file[:thumb_columns]}\" height=\"#{file[:thumb_rows]}\""
-    end %>
     <img src="<%= file[:url_small] %>" <%= width.html_safe %>/>
   </a>
 </div>

@@ -10,7 +10,12 @@ class ThreadsController < ApplicationController
   end
 
   def index
-    show_page(1)
+    if request.get? and request.headers['QUERY_STRING'].include?('tag=')
+      return redirect_to(action: 'index', tag: request.headers['QUERY_STRING'].split('=')[1],
+        trailing_slash: true)
+    else
+      show_page(1)
+    end
   end
 
   def show 
@@ -76,7 +81,7 @@ class ThreadsController < ApplicationController
   end
 
   def live 
-    return not_found if @mobile == true
+    return redirect_to(:root) if @mobile == true
     @response[:messages] = Array.new
     threads = RThread.order('created_at DESC').limit(10).to_a
     posts = RPost.order('created_at DESC').limit(10).to_a
@@ -152,7 +157,8 @@ class ThreadsController < ApplicationController
         total = RThread.count
       end
     elsif @tag == 'favorites'
-      return not_found if @mobile == true
+      return redirect_to(:root) if @mobile == true 
+      return not_found if params[:rids].empty?
       thread_rids = RThread.connection.select_all("SELECT r_threads.rid FROM r_threads
         WHERE r_threads.rid IN (#{params[:rids].join(',')})
         ORDER BY bump DESC LIMIT #{amount} OFFSET #{offset}")
@@ -178,6 +184,7 @@ class ThreadsController < ApplicationController
       data = build_thread(hash['rid']) unless data
       @response[:threads] << data
     end
+    @response[:pages] = 0
     unless @response[:threads].empty?
       plus = 0
       plus = 1 if (total % amount) > 0
