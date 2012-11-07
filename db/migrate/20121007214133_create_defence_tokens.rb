@@ -4,7 +4,7 @@ class CreateDefenceTokens < ActiveRecord::Migration
       t.string :hashname, unique: true
       t.timestamps
     end
-    create_table :settings_records_new do |t|
+    create_table :settings do |t|
       t.text     "allowed_file_types"
       t.integer  "max_file_size",           :default => 3145728
       t.integer  "threads_per_page",        :default => 10
