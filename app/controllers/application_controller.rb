@@ -78,7 +78,7 @@ class ApplicationController < ActionController::Base
   end
 
   def check_mobile
-    @mobile = (request.headers['SERVER_NAME'][0..1] == 'm.')
+    @mobile = (request.headers['HTTP_HOST'][0..1] == 'm.')
     if (request.user_agent.to_s.downcase =~ MOBILE_USER_AGENTS) != nil
       unless @mobile
         unless session[:dont_force_mobile] == true
