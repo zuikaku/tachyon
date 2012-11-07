@@ -1,0 +1,4 @@
+<% cache("#{@response[:thread][:rid]}") do %>
+  <%= render(partial: 'form',         locals: {creating:  "post"}) %>
+  <%= render(partial: 'thread',       object: @response[:thread])  %>
+<% end %>

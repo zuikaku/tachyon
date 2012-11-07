@@ -36,8 +36,8 @@ class RPost < ActiveRecord::Base
     thread.replies_count += 1
     thread.bump = Time.now unless self.sage
     thread.save
-    Rails.cache.delete("t/#{thread.rid}/f") 
-    Rails.cache.delete("t/#{thread.rid}/m")
+    Rails.cache.delete_matched("#{thread.rid}")
+    thread.tags.each { |tag| Rails.cache.delete_matched("views/#{tag.to_s}") }
     if (post_count = Rails.cache.read('post_count'))
       posts = RPost.where(created_at: Time.now.at_midnight..Time.now).count
       posts += RThread.where(created_at: Time.now.at_midnight..Time.now).count 

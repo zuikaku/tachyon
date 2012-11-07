@@ -1,6 +1,12 @@
 class ThreadsController < ApplicationController
-  before_filter do 
-    get_tag if ['index', 'page'].include?(params[:action])
+  before_filter do
+    if ['index', 'page'].include?(params[:action])
+      if @mobile and params.has_key?(:path)
+        return not_found
+      else
+        get_tag unless @mobile
+      end
+    end
   end
 
   def index
@@ -10,16 +16,25 @@ class ThreadsController < ApplicationController
   def show 
     rid = params[:rid].to_i
     return not_found if rid == 0
+    if @mobile 
+      cache = Rails.cache.read("views/#{rid}")
+      return render(text: cache, layout: 'application') if cache
+    end
     thread_rid = RThread.connection.select_all("SELECT r_threads.rid 
         FROM r_threads WHERE r_threads.rid = #{rid} LIMIT 1")
     if thread_rid.empty?
       return not_found
     else
-      data = Rails.cache.read("t/#{rid}/f")
+      data = Rails.cache.read("json/#{rid}/f")
       data = build_thread(rid) unless data
       @response[:thread] = data
     end
     @response[:status] == 'success'
+    if @response[:thread][:title] != ''
+      @title = @response[:thread][:title].dup
+    else
+      @title = t('thread') + " ##{rid}"
+    end
     respond!
   end
 
@@ -38,13 +53,12 @@ class ThreadsController < ApplicationController
   end
 
   def reply
-    sleep 3
     process_post
   end
 
   def expand
     if (thread = RThread.get_by_rid(params[:rid].to_i))
-      data = Rails.cache.read("t/#{thread.rid}/f")
+      data = Rails.cache.read("json/#{thread.rid}/f")
       data = build_thread(thread.rid) unless data
       @response[:posts] = data[:posts]
     else
@@ -62,6 +76,7 @@ class ThreadsController < ApplicationController
   end
 
   def live 
+    return not_found if @mobile == true
     @response[:messages] = Array.new
     threads = RThread.order('created_at DESC').limit(10).to_a
     posts = RPost.order('created_at DESC').limit(10).to_a
@@ -98,14 +113,21 @@ class ThreadsController < ApplicationController
     files = RFile.where("r_files.id IN (?)", files_ids).to_a
     data = thread.jsonify(files)
     posts.each { |post| data[:posts] << post.jsonify(files, rid) }
-    Rails.cache.write("t/#{rid}/#{token}", data)
+    Rails.cache.write("json/#{rid}/#{token}", data)
     return data
   end
 
-  def show_page(page_number) 
+  def show_page(page_number)
+    if @mobile == true
+      cache = Rails.cache.read("views/#{params[:tag]}/#{page_number}")
+      return render(text: cache, layout: 'application') if cache
+      get_tag
+    end
+    logger.info "reading json"
     amount = params[:amount].to_i
+    amount = 7 if @mobile
     params[:rids] = Array.new unless params.has_key?(:rids)
-    if amount < 5 or amount > 20
+    if amount < 5 or amount > 20 
       @response[:errors] = ['invalid request']
       @response[:status] = 'fail'
       return respond!
@@ -114,6 +136,7 @@ class ThreadsController < ApplicationController
     @response[:threads] = Array.new
     offset = (page_number * amount) - amount
     if @tag == '~'
+      @title = t('overview')
       if params.has_key?(:hidden_tags) or params.has_key?(:hidden_posts)
         hidden_rids = [31337] + params[:hidden_posts].to_a
         hidden_tags = ['otsos'] + params[:hidden_tags].to_a
@@ -129,11 +152,13 @@ class ThreadsController < ApplicationController
         total = RThread.count
       end
     elsif @tag == 'favorites'
+      return not_found if @mobile == true
       thread_rids = RThread.connection.select_all("SELECT r_threads.rid FROM r_threads
         WHERE r_threads.rid IN (#{params[:rids].join(',')})
         ORDER BY bump DESC LIMIT #{amount} OFFSET #{offset}")
       total = params[:rids].size
     else
+      @title = @tag.name
       if params.has_key?(:hidden_tags) or params.has_key?(:hidden_posts)
         conditions = ["r_threads.rid NOT IN (?) AND tags.id = ?", [1], @tag.id]
         rids = RThread.order('bump DESC').joins(:tags).where(conditions).pluck('r_threads.rid')
@@ -149,7 +174,7 @@ class ThreadsController < ApplicationController
       end
     end
     thread_rids.each do |hash|
-      data = Rails.cache.read("t/#{hash['rid']}/m")
+      data = Rails.cache.read("json/#{hash['rid']}/m")
       data = build_thread(hash['rid']) unless data
       @response[:threads] << data
     end
@@ -159,6 +184,7 @@ class ThreadsController < ApplicationController
       @response[:pages] = (total / amount) + plus 
     end
     @response[:status] == 'success'
+    return render('index') if @mobile == true
     respond!
   end
 
@@ -166,10 +192,8 @@ class ThreadsController < ApplicationController
     if ['~', 'favorites'].include?(params[:tag])
       @tag = params[:tag]
     else
-      unless (@tag = Tag.where(alias: params[:tag]).first)
-        @response[:status] = 'not found'
-        return respond!
-      end
+      @tag = Tag.where(alias: params[:tag]).first
+      not_found if @tag == nil
     end
   end
 
@@ -237,7 +261,6 @@ class ThreadsController < ApplicationController
         @response[:errors] << t('errors.dyson.omicron') if @token == nil
       end
       return false unless @response[:errors].empty?
-      set_defence_token if @token == nil
       if @ip.banned?
         @response[:errors] << t('errors.banned')
         @response[:ban] = @ip.ban.jsonify
@@ -285,13 +308,20 @@ class ThreadsController < ApplicationController
         @token.updated_at = @post.created_at
         @token.save
       end
-      @tags.each { |tag| @post.tags << tag } if processing_thread?
+      if processing_thread?
+        @tags.each do |tag| 
+          @post.tags << tag 
+          Rails.cache.delete_matched("views/#{tag.to_s}")
+        end
+      end
+      Rails.cache.delete_matched("views/~")
       CometController.publish('/counters', get_counters)
       if processing_thread?
         limit = @settings.defence[:speed_limits][:captcha][:thread]
         post_json = @post.jsonify([@file])
-        Rails.cache.write("t/#{@post.rid}/f", post_json)
-        Rails.cache.write("t/#{@post.rid}/m", post_json)
+        Rails.cache.write("json/#{@post.rid}/f", post_json)
+        Rails.cache.write("json/#{@post.rid}/m", post_json)
+        Rails.cache.delete_matched("views/#{@post.rid}")
         @response[:thread_rid] = @post.rid
         now = Time.now
         start_of_hour = Time.new(now.year, now.month, now.day, now.hour)
@@ -301,6 +331,7 @@ class ThreadsController < ApplicationController
           @settings.save
         end
       else
+        Rails.cache.delete_matched("views/#{@thread.rid}")
         limit = @settings.defence[:speed_limits][:captcha][:post]
         post_json = @post.jsonify([@file], @thread.rid)
         CometController.publish("/thread/#{@thread.rid}", post_json)

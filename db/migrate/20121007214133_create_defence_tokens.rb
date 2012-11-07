@@ -1,23 +1,25 @@
 class CreateDefenceTokens < ActiveRecord::Migration
   def change
     create_table :defence_tokens do |t|
-      t.string :hash
+      t.string :hashname, unique: true
       t.timestamps
     end
-
-    remove_column :settings_records, :spamtxt
-    remove_column :settings_records, :thread_posting_speed
-    remove_column :settings_records, :reply_posting_speed
-    remove_column :settings_records, :defence_mode
-    remove_column :settings_records, :spamtxt_enabled
-    remove_column :settings_records, :new_threads_to_trash
-    remove_column :settings_records, :cookie_barrier
+    create_table :settings_records_new do |t|
+      t.text     "allowed_file_types"
+      t.integer  "max_file_size",           :default => 3145728
+      t.integer  "threads_per_page",        :default => 10
+      t.integer  "max_threads",             :default => 1000
+      t.integer  "bump_limit",              :default => 500
+      t.integer  "max_references_per_post", :default => 10
+      t.datetime "created_at",                                   :null => false
+      t.datetime "updated_at",                                   :null => false
+      t.text     "defence"
+    end
 
     add_column :r_threads, :defence_token_id, :integer
     add_index  :r_threads, :defence_token_id
     add_column :r_posts,   :defence_token_id, :integer
     add_index  :r_posts,   :defence_token_id
-
-    add_column :settings_records, :defence, :text
+    add_index  :defence_tokens, :hashname, unique: true
   end
 end

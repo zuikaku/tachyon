@@ -12,7 +12,5 @@ end
 gem 'jquery-rails'
 gem 'rmagick'
 gem 'bundler'
-gem 'will_paginate'
-gem 'haml', '3.1.6'
 gem 'thin'
 gem 'yajl-ruby'

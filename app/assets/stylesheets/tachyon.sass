@@ -5,7 +5,7 @@ html, body
   background-color: #f3f3f3
   background-image: url("ui/noema-texture.png")
   min-width: 1000px
-  overflow-x: hidden
+  // overflow-x: hidden
 
 @font-face
   font-family: Freelancer
@@ -96,13 +96,16 @@ a.post_link
 footer 
   margin-top: 50px
   text-align: center
-  display: table
-  width: 100%
+  // display: table
+  width: 98%
   padding: 15px
   border-top: 1px solid #ccc
   font-size: 12px
   color: #666
-  font-family: Consolas, monospace
+  font-family: Terminus, Consolas, monospace
+  a 
+    display: block
+    color: #666
 
 
 .quote
@@ -440,9 +443,17 @@ footer
           text-decoration: none
           color: #777
 
+
+#loading_container
+  position: fixed
+  top: 50%
+  width: 100%
+  font-size: 12px
+  text-align: center
+
 #loading, #form_loading
   position: fixed
-  top: 45%
+  top: 40%
   display: block
   padding: 10px
   z-index: 16

@@ -1,4 +1,5 @@
 class SettingsRecord < ActiveRecord::Base
+  table_name :settings_records_new
   serialize :allowed_file_types,  Array
   serialize :defence,             Hash
 

@@ -17,25 +17,11 @@
 //= require views/taglist
 //= require views/thread_and_post
 
-
-
-var VERSION = 0.3;
-var NAME = 'Tachyon';
+var settings, header, tagList, cometSubscription, previousPath,
+waitToHighlight, section, bottomMenu, loadingTimeout, threadsCollection,
+livePostsCollection, currentTag = null;
 
 $(document).ready(function() {
-
-
-cometSubscription   = null;
-previousPath        = null;
-waitToHighlight     = null;
-section             = null;
-header              = null;
-bottomMenu          = null;
-loadingTimeout      = null;
-threadsCollection   = null;
-livePostsCollection = null;
-currentTag          = null;
-
 var MainRouter = Backbone.Router.extend({
     routes: {
         '':                     'toRoot',
@@ -63,6 +49,7 @@ var MainRouter = Backbone.Router.extend({
         action = null;
         form.hide();
         form.setTag('');
+        settings.close();
         header.$el.find(".active").removeClass('active');
         tagList.$el.find(".selected").removeClass('selected');
         if (response.status == 'not found') {
@@ -385,7 +372,7 @@ function adjustAbsoluteElements() {
     adjustFooter();
 }
 
-function adjustFooter () {
+function adjustFooter() {
     if (mainContainer.height() < (window.innerHeight - 100)) {
         $('footer').css({position: 'absolute', bottom: 0});
     } else {
@@ -415,7 +402,9 @@ function initializeInterface() {
     mainContainer.append(previews.el);
     mainContainer.append(settings.el);
     section = $("<section id='container'></section>");
-    mainContainer.append(section).append('<footer>Tachyon ' + VERSION + '</footer>');
+    var footer = '<footer>Tachyon ' + VERSION
+    footer += "<a href='http://m." + document.location.host + "'>мобильная версия</a></footer"
+    mainContainer.append(section).append(footer);
     header.setFixed(settings.get('fixed_header'));
     adjustAbsoluteElements();
     $(window).resize(adjustAbsoluteElements);
@@ -424,9 +413,13 @@ function initializeInterface() {
     header.setCounters(tagList.counters);
 
     Backbone.history.start({pushState: true});
+    $("#loading_container blockquote").remove();
 
     $(document).on('click', "a[href^='/']", function(event) {
         var href = $(event.currentTarget).attr('href');
+        if (href.substring(1,8) == 'utility') {
+            return true;
+        }
         var click = (!event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey);
         click = click && (href.substring(0, 6) != '/files');
         if (click == true) {
@@ -435,12 +428,7 @@ function initializeInterface() {
             router.navigate(href, {trigger: true});
         }
     });
-    if (production == true) {
-        var address = 'comet.freeport7.org';
-    } else {
-        var address = '/comet';
-    }
-    cometClient = new Faye.Client(address, {
+    cometClient = new Faye.Client('/comet', {
         timeout: 120,
         retry: 2
     });
@@ -455,6 +443,7 @@ function initializeInterface() {
     }, 60000)
 }
 
+
 settings = new SettingsView;
 header = new HeaderView;
 tagList = new TagListView;
@@ -468,6 +457,6 @@ if (tagList.gotTags == true) {
     paginator = new PaginatorView;
     previews = new PreviewsView;
     initializeInterface();
-    return false;
+    // return true;
 }
 });

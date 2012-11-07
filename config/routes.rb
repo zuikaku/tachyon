@@ -1,18 +1,14 @@
 Tachyon::Application.routes.draw do
   root to: 'application#index'
-
-  if Rails.env.production?
-    faye_server timeout: 180 do
-      listen(1337)
-    end
-  else
-    faye_server '/comet', timeout: 180
-  end
+    
+  faye_server '/comet', timeout: 35
 
   scope "utility" do 
-    match 'get_tags'    => 'application#get_tags', via: 'post'
-    match 'get_post'    => 'threads#get_post', via: 'post'
-    match 'ping'        => 'application#ping', via: 'post'
+    match 'get_tags'      => 'application#get_tags', via: 'post'
+    match 'get_post'      => 'threads#get_post', via: 'post'
+    match 'ping'          => 'application#ping', via: 'post'
+    match "mobile-off"  => 'application#mobile_off', via: 'get'
+    match "gc" => 'application#garbage_collection', via: 'get'
   end
 
   match 'live' => 'threads#live'

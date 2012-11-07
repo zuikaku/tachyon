@@ -4,19 +4,33 @@ class ApplicationController < ActionController::Base
   protect_from_forgery
 
   before_filter do
-    return render(text: 'pisya', status: 405) unless verified_request?
-    return render('index') if request.get? and request.headers["REQUEST_PATH"] != "/"
+    return render(text: 'unverified request', status: 403) unless verified_request?
+    @start_time = Time.now.usec
+    utility = %w( mobile_off garbage_collection ).include?(params[:action])
+    check_mobile unless utility
+    if @mobile == false and utility == false
+      return render('application/index') if request.get?
+    else 
+      if request.get?
+        @ip = Ip.get(request.remote_ip.to_s) if @mobile
+        @counters = get_counters
+      end
+    end
     @response = Hash.new
   end
 
   after_filter do 
     if @ip
-      @ip.updated_at = Time.now if @ip.updated_at < (Time.now - 40)
+      @ip.updated_at = Time.now if @ip.updated_at < (Time.now - 1.minute)
       @ip.save if @ip.changed?
     end
   end
 
   def index
+    if @mobile == true
+      redirect_to(controller: 'threads', action: 'index', 
+                tag: '~', trailing_slash: true)
+    end
   end
 
   def ping 
@@ -34,12 +48,50 @@ class ApplicationController < ActionController::Base
     respond!
   end
 
+  def mobile_off
+    if request.headers['SERVER_NAME'][0..1] == 'm.'
+      path = request.headers['HTTP_HOST'].gsub('m.', '')
+      return redirect_to("http://#{path}/utility/mobile-off")
+    else
+      session[:dont_force_mobile] = true
+      return redirect_to :root
+    end
+  end
+
+  def garbage_collection
+    return not_found unless request.local?
+    date = (Time.now - 2.days).at_midnight
+    parameters = { ip_id: nil, defence_token_id: nil }
+    RPost.where("created_at <= ?", date).update_all(parameters)
+    RThread.where("created_at <= ?", date).update_all(parameters)
+    DefenceToken.where("updated_at < ?", date).destroy_all
+    return render(text: 'cleanup successfull')
+  end
+
   protected
   def respond!
-    return render(json: @response)
+    if @mobile == false
+      @response[:time] = (Time.now.usec - @start_time).abs / 1000000.0
+      return render(json: @response)
+    else
+    end
+  end
+
+  def check_mobile
+    @mobile = (request.headers['SERVER_NAME'][0..1] == 'm.')
+    if (request.user_agent.to_s.downcase =~ MOBILE_USER_AGENTS) != nil
+      unless @mobile
+        unless session[:dont_force_mobile] == true
+          @mobile = true
+          path = request.headers['HTTP_HOST']
+          return redirect_to("http://m.#{path}#{request.headers['REQUEST_PATH']}")
+        end
+      end
+    end
   end
 
   def not_found
+    render('application/not_found') if @mobile == true
     @response[:status] = 'not found'
     respond!
   end
@@ -184,7 +236,7 @@ class ApplicationController < ActionController::Base
     #   text.gsub!("##ADMIN", "<span class='admin_proofmark'>Edison Trent</span>") if @moder.level == 3
     # end
     text.gsub!(/^&gt;(.+)$/) do |text| 
-      "<span class='quote'>&gt; #{text.strip}</span>"
+      "<span class='quote'>#{text.strip}</span>"
     end
     text.gsub!(/\r*\n(\r*\n)+/, '<br /><br />')
     text.gsub!(/\r*\n/,        '<br />')

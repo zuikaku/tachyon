@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20121007214135) do
+ActiveRecord::Schema.define(:version => 20121007214133) do
 
   create_table "admin_log_entries", :force => true do |t|
     t.string   "message"
@@ -43,10 +43,12 @@ ActiveRecord::Schema.define(:version => 20121007214135) do
   add_index "captchas", ["word"], :name => "index_captchas_on_word", :unique => true
 
   create_table "defence_tokens", :force => true do |t|
+    t.string   "hashname"
     t.datetime "created_at", :null => false
     t.datetime "updated_at", :null => false
-    t.string   "hashname"
   end
+
+  add_index "defence_tokens", ["hashname"], :name => "index_defence_tokens_on_hashname", :unique => true
 
   create_table "id_counters", :force => true do |t|
     t.integer  "last_rid",      :default => 0
@@ -149,6 +151,25 @@ ActiveRecord::Schema.define(:version => 20121007214135) do
   end
 
   create_table "settings_records", :force => true do |t|
+    t.text     "allowed_file_types"
+    t.integer  "max_file_size",           :default => 3145728
+    t.integer  "threads_per_page",        :default => 10
+    t.integer  "max_threads",             :default => 1000
+    t.integer  "bump_limit",              :default => 500
+    t.integer  "thread_posting_speed",    :default => 15
+    t.integer  "reply_posting_speed",     :default => 5
+    t.integer  "max_references_per_post", :default => 10
+    t.datetime "created_at",                                   :null => false
+    t.datetime "updated_at",                                   :null => false
+    t.boolean  "defence_mode",            :default => false
+    t.boolean  "spamtxt_enabled",         :default => false
+    t.text     "spamtxt"
+    t.boolean  "new_threads_to_trash",    :default => false
+    t.boolean  "cookie_barrier",          :default => false
+    t.text     "defence"
+  end
+
+  create_table "settings_records_new", :force => true do |t|
     t.text     "allowed_file_types"
     t.integer  "max_file_size",           :default => 3145728
     t.integer  "threads_per_page",        :default => 10

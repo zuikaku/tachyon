@@ -1,0 +1,44 @@
+<html>
+  <head>
+    <title>Tachyon - <%= @title %></title>
+    <meta http-equiv="Content-Type", content="text/html; charset=utf-8" />
+    <%= csrf_meta_tags %>
+    <% if @mobile %>
+      <%= stylesheet_link_tag(:tachyon_mobile, media: "all") %>
+    <% else %>
+      <%= stylesheet_link_tag(:tachyon, media: "all") %>
+      <script type="text/javascript">
+        production    = <%= Rails.env.production?.to_s %>;
+        VERSION       = "<%= VERSION %>";
+        NAME          = "Tachyon";
+        tachyonPath   = "<%= javascript_path(:tachyon) %>";
+      </script>
+      <%= javascript_include_tag(:preload, cache: false) %>
+    <% end %>
+  </head>
+  <body>
+    <div id="main_container">
+      <% if @mobile %>
+        <%= render(partial: '/mobile_menu', locals: {tag: @tag}) %>
+        <div id="content"><%= yield %></div>
+        <div id="footer">
+          Tachyon <%= VERSION %>
+          <a href="/utility/mobile-off">полная версия</a>
+        </div>
+      <% else %>
+        <div id='loading_container'>
+          <%= image_tag("ui/loading.gif", id: 'loading') %>
+          <blockquote>
+            Для работы полной версии необходима поддержка
+            <br />
+             Javascript, Local Storage и Cookies. 
+            <br />
+            <a href="http://<%= "m.#{request.headers['HTTP_HOST']}#{request.headers['REQUEST_PATH']}" %>">
+              перейти к мобильной версии
+            </a>
+          </blockquote>
+        </div>
+      <% end %>
+    </div>
+  </body>
+</html>

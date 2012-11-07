@@ -1,0 +1,30 @@
+<% width = "" %>
+
+<span class="file_info">
+  <% if file[:extension] == 'video' and file[:video_title] != nil %>
+    Видео: &laquo;<a href="<%= file[:url_full] %>"><%= file[:video_title] %></a>&raquo;
+    <%
+      width = 'width="300" height="220"'
+      minutes = file[:video_duration] / 60
+      seconds = file[:video_duration] - minutes*60
+      seconds = "0" + seconds if seconds < 10
+    %>
+    <%= minutes %>:<%= seconds %>
+  <% else %>  
+    Файл: <a href="<%= file[:url_full] %>" target="_blank"><%= file[:extension] %></a>
+    <%= file[:size] / 1024 %> kb.
+    <% if file[:is_picture] == true %>
+      &mdash; <%= file[:columns] %>×<%= file[:rows] %>
+    <% end %>
+  <% end %>
+</span>
+<div class="file_container">
+  <a href="<%= file[:url_full] %>" target="blank">
+    <% if file[:extension] == 'video' %>
+      <%= image_tag('ui/play.png', class: 'play_button') %>
+    <% else 
+      width = "width=\"#{file[:thumb_columns]}\" height=\"#{file[:thumb_rows]}\""
+    end %>
+    <img src="<%= file[:url_small] %>" <%= width.html_safe %>/>
+  </a>
+</div>

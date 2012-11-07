@@ -1,4 +1,6 @@
 ru:
+  overview: 'Обзор'
+  thread:   'Тред'
   errors:
     speed_limit:
       ip:     'Вы пишете слишком часто. Подождите '
