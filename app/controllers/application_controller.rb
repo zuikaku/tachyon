@@ -12,7 +12,9 @@ class ApplicationController < ActionController::Base
       return render('application/index') if request.get?
     else 
       if request.get?
-        @ip = Ip.get(request.remote_ip.to_s) if @mobile
+        address = request.remote_ip.to_s
+        address = request.headers['HTTP_REAL_IP'] if Rails.env.production?
+        @ip = Ip.get(address) if @mobile
         @counters = get_counters
       end
     end
@@ -35,12 +37,16 @@ class ApplicationController < ActionController::Base
   end
 
   def ping 
-    @ip = Ip.get(request.remote_ip.to_s)
+    address = request.remote_ip.to_s
+    address = request.headers['HTTP_REAL_IP'] if Rails.env.production?
+    @ip = Ip.get(address)
     return render(text: 'pong')
   end
 
   def get_tags
-    @ip = Ip.get(request.remote_ip.to_s)
+    address = request.remote_ip.to_s
+    address = request.headers['HTTP_REAL_IP'] if Rails.env.production?
+    @ip = Ip.get(address)
     @response[:tags] = Tag.all.to_json
     @response[:counters] = get_counters
     set_captcha if @ip.post_captcha_needed

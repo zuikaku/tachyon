@@ -291,7 +291,9 @@ class ThreadsController < ApplicationController
       return @response[:errors].empty?
     end
 
-    @ip = Ip.get(request.remote_ip.to_s)
+    address = request.remote_ip.to_s
+    address = request.headers['HTTP_REAL_IP'] if Rails.env.production?
+    @ip = Ip.get(address)
     @response[:errors] = Array.new
     @settings = SettingsRecord.get
     @post = RThread.new(params[:message]) if params[:action] == 'create'
