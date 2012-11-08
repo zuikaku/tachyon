@@ -350,9 +350,10 @@ class ThreadsController < ApplicationController
           @response[:post_rid] = @post.rid
         end
       end
+      Rails.cache.delete_matched("views/~")
+      Rails.cache.delete('post_count')
       CometController.publish('/live', post_json)
       CometController.publish('/counters', get_counters)
-      Rails.cache.delete_matched("views/~")
       delta = Time.now - @checking
       @ip.post_captcha_needed = true if delta.to_i < limit
       @response[:status] = 'success'
