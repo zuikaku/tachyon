@@ -7,6 +7,7 @@ class ApplicationController < ActionController::Base
     return render(text: 'unverified request', status: 403) unless verified_request?
     @host = request.headers['HTTP_HOST']
     @host = request.headers['HTTP_SERVER_NAME'] if Rails.env.production?
+    logger.info @host.inspect
     @response = Hash.new
     @start_time = Time.now.usec
     utility = %w( mobile_off garbage_collection ).include?(params[:action])
@@ -15,6 +16,9 @@ class ApplicationController < ActionController::Base
       return render('application/index') if request.get?
     else 
       if @mobile
+        if request.get? and request.headers['QUERY_STRING'].include?('tag=')
+          return redirect_to("http://#{@host}/#{request.headers['QUERY_STRING'].split('=')[1]}/")
+        end
         address = request.remote_ip.to_s
         address = request.headers['HTTP_REAL_IP'] if Rails.env.production?
         @ip = Ip.get(address)
@@ -86,12 +90,9 @@ class ApplicationController < ActionController::Base
         return render('/errors') unless @response[:errors].empty?
       end
       if params[:action] == "reply"
-        url = url_for(controller: 'threads', action: 'show', rid: @thread.rid,
-          anchor: "i#{@post.rid}")
-        return redirect_to("#{url}")
+        return redirect_to("http://#{@host}/thread/#{@thread.rid}#i#{@post.rid}")
       elsif params[:action] == "create"
-        url = url_for(controller: 'threads', action: 'show', rid: @response[:thread_rid])
-        return redirect_to("#{url}")
+        return redirect_to("http://#{@host}/thread/#{@post.rid}")
       end
     end
   end
