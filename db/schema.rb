@@ -33,9 +33,9 @@ ActiveRecord::Schema.define(:version => 20121007214133) do
   create_table "captchas", :force => true do |t|
     t.string   "word"
     t.integer  "key"
+    t.boolean  "defensive",  :default => false
     t.datetime "created_at",                    :null => false
     t.datetime "updated_at",                    :null => false
-    t.boolean  "defensive",  :default => false
   end
 
   add_index "captchas", ["defensive"], :name => "index_captchas_on_defensive"
@@ -68,6 +68,8 @@ ActiveRecord::Schema.define(:version => 20121007214133) do
     t.datetime "updated_at",                               :null => false
   end
 
+  add_index "ips", ["address"], :name => "index_ips_on_address", :unique => true
+
   create_table "moders", :force => true do |t|
     t.string   "hashed_password"
     t.integer  "level"
@@ -90,15 +92,15 @@ ActiveRecord::Schema.define(:version => 20121007214133) do
     t.string   "extension"
     t.integer  "size"
     t.integer  "uploads_count",  :default => 0
+    t.boolean  "resized",        :default => false
     t.integer  "columns"
     t.integer  "rows"
-    t.boolean  "resized",        :default => false
-    t.datetime "created_at",                        :null => false
-    t.datetime "updated_at",                        :null => false
     t.integer  "thumb_columns"
     t.integer  "thumb_rows"
     t.string   "video_title"
     t.integer  "video_duration"
+    t.datetime "created_at",                        :null => false
+    t.datetime "updated_at",                        :null => false
   end
 
   create_table "r_posts", :force => true do |t|
@@ -150,35 +152,33 @@ ActiveRecord::Schema.define(:version => 20121007214133) do
     t.integer "tag_id"
   end
 
-  create_table "settings_records", :force => true do |t|
+  create_table "settings", :force => true do |t|
     t.text     "allowed_file_types"
     t.integer  "max_file_size",           :default => 3145728
     t.integer  "threads_per_page",        :default => 10
     t.integer  "max_threads",             :default => 1000
     t.integer  "bump_limit",              :default => 500
-    t.integer  "thread_posting_speed",    :default => 15
-    t.integer  "reply_posting_speed",     :default => 5
     t.integer  "max_references_per_post", :default => 10
     t.datetime "created_at",                                   :null => false
     t.datetime "updated_at",                                   :null => false
-    t.boolean  "defence_mode",            :default => false
-    t.boolean  "spamtxt_enabled",         :default => false
-    t.text     "spamtxt"
-    t.boolean  "new_threads_to_trash",    :default => false
-    t.boolean  "cookie_barrier",          :default => false
     t.text     "defence"
   end
 
-  create_table "settings_records_new", :force => true do |t|
+  create_table "settings_records", :force => true do |t|
     t.text     "allowed_file_types"
-    t.integer  "max_file_size",           :default => 3145728
-    t.integer  "threads_per_page",        :default => 10
-    t.integer  "max_threads",             :default => 1000
-    t.integer  "bump_limit",              :default => 500
-    t.integer  "max_references_per_post", :default => 10
-    t.datetime "created_at",                                   :null => false
-    t.datetime "updated_at",                                   :null => false
-    t.text     "defence"
+    t.text     "spamtxt"
+    t.integer  "max_file_size",        :default => 10485760
+    t.integer  "threads_per_page",     :default => 10
+    t.integer  "max_threads",          :default => 1000
+    t.integer  "bump_limit",           :default => 500
+    t.integer  "thread_posting_speed", :default => 120
+    t.integer  "reply_posting_speed",  :default => 5
+    t.boolean  "defence_mode",         :default => false
+    t.boolean  "spamtxt_enabled",      :default => false
+    t.boolean  "new_threads_to_trash", :default => false
+    t.datetime "created_at",                                 :null => false
+    t.datetime "updated_at",                                 :null => false
+    t.boolean  "cookie_barrier",       :default => false
   end
 
   create_table "tags", :force => true do |t|
@@ -194,11 +194,11 @@ ActiveRecord::Schema.define(:version => 20121007214133) do
   create_table "users", :force => true do |t|
     t.string   "hashname"
     t.text     "settings"
-    t.datetime "created_at", :null => false
-    t.datetime "updated_at", :null => false
     t.text     "hidden"
     t.text     "seen"
     t.text     "favorites"
+    t.datetime "created_at", :null => false
+    t.datetime "updated_at", :null => false
   end
 
   add_index "users", ["hashname"], :name => "index_users_on_hashname", :unique => true

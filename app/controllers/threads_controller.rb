@@ -292,6 +292,7 @@ class ThreadsController < ApplicationController
           return not_found
         end
       end
+      logger.info @checking.inspect
       delta = (Time.now - @checking).to_i
       if delta < limit
         @response[:errors] << t('errors.speed_limit.ip') + Verbose::seconds(limit - delta)
@@ -299,22 +300,24 @@ class ThreadsController < ApplicationController
       return @response[:errors].empty?
     end
 
+    logger.info "starting"
     address = request.remote_ip.to_s
     address = request.headers['HTTP_REAL_IP'] if Rails.env.production?
-    @ip = Ip.get(address)
+    @ip = Ip.get(address) 
     @response[:errors] = Array.new
     @settings = SettingsRecord.get
     @post = RThread.new(params[:message]) if params[:action] == 'create'
     @post = RPost.new(params[:message]) if params[:action] == 'reply'
     logger.info @post.inspect
     validate_content if validate_permission
+    logger.info @response.inspect
     if @response[:errors].empty?
       @post.rid = IdCounter.get_next_rid(processing_thread?)
       @post.ip_id = @ip.id
       @post.message = parse(@post.message)
-      @post.defence_token_id = @token.id
+      @post.defence_token_id = @token.id if @token
       @post.save
-      if @token.updated_at < (Time.now - 1.day)
+      if @token and @token.updated_at < (Time.now - 1.day)
         @token.updated_at = @post.created_at
         @token.save
       end
@@ -324,15 +327,13 @@ class ThreadsController < ApplicationController
           Rails.cache.delete_matched("views/#{tag.to_s}")
         end
       end
-      Rails.cache.delete_matched("views/~")
-      CometController.publish('/counters', get_counters)
       if processing_thread?
         limit = @settings.defence[:speed_limits][:captcha][:thread]
         post_json = @post.jsonify([@file])
         Rails.cache.write("json/#{@post.rid}/f", post_json)
         Rails.cache.write("json/#{@post.rid}/m", post_json)
-        Rails.cache.delete_matched("views/#{@post.rid}")
         @response[:thread_rid] = @post.rid
+        Rails.cache.delete_matched("views/#{@post.rid}")
         now = Time.now
         start_of_hour = Time.new(now.year, now.month, now.day, now.hour)
         threads_per_hour = RThread.where(created_at: start_of_hour..now).count
@@ -341,7 +342,11 @@ class ThreadsController < ApplicationController
           @settings.save
         end
       else
-        Rails.cache.delete_matched("views/#{@thread.rid}")
+        @thread.replies_count += 1
+        @thread.bump = Time.now unless @post.sage
+        @thread.save
+        Rails.cache.delete_matched("#{@thread.rid}")
+        @thread.tags.each { |tag| Rails.cache.delete_matched("views/#{tag.to_s}") }
         limit = @settings.defence[:speed_limits][:captcha][:post]
         post_json = @post.jsonify([@file], @thread.rid)
         CometController.publish("/thread/#{@thread.rid}", post_json)
@@ -351,9 +356,11 @@ class ThreadsController < ApplicationController
           @response[:post_rid] = @post.rid
         end
       end
+      CometController.publish('/live', post_json)
+      CometController.publish('/counters', get_counters)
+      Rails.cache.delete_matched("views/~")
       delta = Time.now - @checking
       @ip.post_captcha_needed = true if delta.to_i < limit
-      CometController.publish('/live', post_json)
       @response[:status] = 'success'
       @ip.update_last(@post)
     end

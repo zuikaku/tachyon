@@ -8,8 +8,8 @@ MOBILE_USER_AGENTS =  Regexp.new ('palm|blackberry|nokia|phone|midp|mobi|symbian
                                   'x320|x240|j2me|sgh|portable|sprint|docomo|kddi|softbank|android|mmp|' +
                                   'pdxgw|netfront|xiino|vodafone|portalmmm|sagem|mot-|sie-|ipod|up\\.b|' +
                                   'webos|amoi|novarra|cdm|alcatel|pocket|ipad|iphone|mobileexplorer|' +
-                                  'mobile')
-VERSION = "0.5 alpha"
+                                  'mobile|msie') # explorer sucks cocks
+VERSION = "0.6 alpha" 
 
 Encoding.default_external = Encoding::UTF_8
 Encoding.default_internal = Encoding::UTF_8

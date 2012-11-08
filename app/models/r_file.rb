@@ -45,10 +45,10 @@ class RFile < ActiveRecord::Base
       end
     else
       if file.tempfile.size > settings.max_file_size
-        errors << "#{t('errors.file_size_should_be')} #{@p.max_file_size/1024} kb."
+        errors << "#{I18n.t('errors.file.size')} #{(settings.max_file_size/1024)/1000} mb."
       end
       unless settings.allowed_file_types.include?(file.content_type)
-        errors << t('errors.file_type_should_be')
+        errors << I18n.t('errors.file.type')
       end
       return errors unless errors.empty?
       hash = Digest::MD5.hexdigest(file.tempfile.read)
@@ -59,9 +59,13 @@ class RFile < ActiveRecord::Base
       end
       type = file.content_type.split('/')[1]
       type = 'swf' if type == 'x-shockwave-flash'
-      type = file.original_filename.split('.')[-1] 
+      # type = file.original_filename.split('.')[-1] 
       if ['octet-stream', 'x-rar-compressed'].include?(type)
         type = file.original_filename.split('.')[-1] 
+      end
+      unless %w( png jpeg jpg gif zip rar swf video ).include?(type)
+        errors << I18n.t('errors.file.type')
+        return errors
       end
       path = "#{Rails.root}/public/files"
       Dir::mkdir(path) unless File.directory?(path)
@@ -134,11 +138,11 @@ class RFile < ActiveRecord::Base
     if self.picture? and self.resized? 
       "/files/#{self.filename}s.#{self.extension}"
     elsif self.archive?
-      "archive.png"
+      "/assets/ui/archive.png"
     elsif self.video?
       "http://i.ytimg.com/vi/#{self.filename}/0.jpg"
     elsif self.flash?
-      "flash.png"
+      "/assets/ui/flash.png"
     else
       self.url_full
     end

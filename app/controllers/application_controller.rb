@@ -5,20 +5,23 @@ class ApplicationController < ActionController::Base
 
   before_filter do
     return render(text: 'unverified request', status: 403) unless verified_request?
+    @host = request.headers['HTTP_HOST']
+    @host = request.headers['HTTP_SERVER_NAME'] if Rails.env.production?
+    @response = Hash.new
     @start_time = Time.now.usec
     utility = %w( mobile_off garbage_collection ).include?(params[:action])
     check_mobile unless utility
     if @mobile == false and utility == false
       return render('application/index') if request.get?
     else 
-      if request.get?
+      if @mobile
         address = request.remote_ip.to_s
         address = request.headers['HTTP_REAL_IP'] if Rails.env.production?
-        @ip = Ip.get(address) if @mobile
+        @ip = Ip.get(address)
+        set_captcha if @ip.post_captcha_needed
         @counters = get_counters
       end
     end
-    @response = Hash.new
   end
 
   after_filter do 
@@ -30,9 +33,7 @@ class ApplicationController < ActionController::Base
 
   def index
     if @mobile == true
-      path = request.headers['HTTP_HOST']
-      path = request.headers['HTTP_SERVER_NAME'] if Rails.env.production?
-      return redirect_to("http://#{path}/~/")
+      return redirect_to("http://#{@host}/~/")
     end
   end
 
@@ -56,10 +57,8 @@ class ApplicationController < ActionController::Base
   end
 
   def mobile_off
-    server = 'SERVER_NAME'
-    server = 'HTTP_' + server if Rails.env.production?
-    if request.headers[server][0..1] == 'm.'
-      path = request.headers[server].gsub('m.', '')
+    if @host[0..1] == 'm.'
+      path = @host.gsub('m.', '')
       return redirect_to("http://#{path}/utility/mobile-off")
     else
       session[:dont_force_mobile] = true
@@ -69,7 +68,7 @@ class ApplicationController < ActionController::Base
 
   def garbage_collection
     return not_found unless request.local?
-    date = (Time.now - 2.days).at_midnight
+    date = (Time.now - 3.days).at_midnight
     parameters = { ip_id: nil, defence_token_id: nil }
     RPost.where("created_at <= ?", date).update_all(parameters)
     RThread.where("created_at <= ?", date).update_all(parameters)
@@ -83,19 +82,25 @@ class ApplicationController < ActionController::Base
       @response[:time] = (Time.now.usec - @start_time).abs / 1000000.0
       return render(json: @response)
     else
+      if @response.has_key?(:errors)
+        return render('/errors') unless @response[:errors].empty?
+      end
+      if params[:action] == "reply"
+        return redirect_to(controller: 'threads', action: 'show', rid: @thread.rid,
+          anchor: "i#{@post.rid}")
+      elsif params[:action] == "create"
+        return redirect_to(controller: 'threads', action: 'show', rid: @response[:thread_rid])
+      end
     end
   end
 
   def check_mobile
-    server = 'SERVER_NAME'
-    server = 'HTTP_SERVER_NAME' if Rails.env.production?
-    @mobile = (request.headers[server][0..1] == 'm.')
+    @mobile = (@host[0..1] == 'm.')
     if (request.user_agent.to_s.downcase =~ MOBILE_USER_AGENTS) != nil
       unless @mobile
         unless session[:dont_force_mobile] == true
           @mobile = true
-          path = request.headers[server]
-          return redirect_to("http://m.#{path}#{request.headers['REQUEST_PATH']}")
+          return redirect_to("http://m.#{@host}#{request.headers['REQUEST_PATH']}")
         end
       end
     end

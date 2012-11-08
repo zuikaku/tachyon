@@ -21,8 +21,6 @@ class TachyonMessageValidator < ActiveModel::Validator
   end
 end
 
-
-
 class RPost < ActiveRecord::Base
   belongs_to  :r_thread
   belongs_to  :r_file
@@ -31,19 +29,19 @@ class RPost < ActiveRecord::Base
   serialize :replies_rids, Array
   validates_with TachyonMessageValidator
 
-  before_create do
-    thread = self.r_thread
-    thread.replies_count += 1
-    thread.bump = Time.now unless self.sage
-    thread.save
-    Rails.cache.delete_matched("#{thread.rid}")
-    thread.tags.each { |tag| Rails.cache.delete_matched("views/#{tag.to_s}") }
-    if (post_count = Rails.cache.read('post_count'))
-      posts = RPost.where(created_at: Time.now.at_midnight..Time.now).count
-      posts += RThread.where(created_at: Time.now.at_midnight..Time.now).count 
-      Rails.cache.write("post_count", posts)
-    end
-  end
+  # before_create do
+  #   thread = self.r_thread
+  #   thread.replies_count += 1
+  #   thread.bump = Time.now unless self.sage
+  #   thread.save
+  #   Rails.cache.delete_matched("#{thread.rid}")
+  #   thread.tags.each { |tag| Rails.cache.delete_matched("views/#{tag.to_s}") }
+  #   if (post_count = Rails.cache.read('post_count'))
+  #     posts = RPost.where(created_at: Time.now.at_midnight..Time.now).count
+  #     posts += RThread.where(created_at: Time.now.at_midnight..Time.now).count 
+  #     Rails.cache.write("post_count", posts)
+  #   end
+  # end
 
   before_destroy do
     if (thread = self.r_thread)

@@ -412,8 +412,9 @@ function initializeInterface() {
     tagList.$el.hover(setMouseOver, hideTagList);
     header.setCounters(tagList.counters);
 
-    Backbone.history.start({pushState: true});
     $("#loading_container blockquote").remove();
+    loadingIndicator.css('z-index', '20');
+    Backbone.history.start({pushState: true});
 
     $(document).on('click', "a[href^='/']", function(event) {
         var href = $(event.currentTarget).attr('href');
@@ -457,6 +458,5 @@ if (tagList.gotTags == true) {
     paginator = new PaginatorView;
     previews = new PreviewsView;
     initializeInterface();
-    // return true;
 }
 });

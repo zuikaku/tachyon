@@ -16,7 +16,7 @@
       <%= javascript_include_tag(:preload, cache: false) %>
     <% end %>
     <!-- 
-      This is Freeport 7 to freelancer, alpha one dash one.
+      This is Freeport 7 to freelancer alpha one dash one.
       Page rendered in <%= (Time.now.usec - @start_time).abs / 1000000.0 %> seconds.
       You are clear to launch. Good luck out there.
      -->
@@ -25,10 +25,12 @@
     <div id="main_container">
       <% if @mobile %>
         <%= render(partial: '/mobile_menu', locals: {tag: @tag}) %>
-        <div id="content"><%= yield %></div>
+        <div id="content">
+          <%= yield %>
+        </div>
         <div id="footer">
           Tachyon <%= VERSION %>
-          <a href="/utility/mobile-off">полная версия</a>
+          <a href="http://<%= @host %>/utility/mobile-off">полная версия</a>
         </div>
       <% else %>
         <div id='loading_container'>
@@ -38,7 +40,7 @@
             <br />
              Javascript, Local Storage и Cookies. 
             <br />
-            <a href="http://<%= "m.freeport7.org#{request.headers['REQUEST_PATH']}" %>">
+            <a href="http://<%= "#{@host}#{request.headers['REQUEST_PATH']}" %>">
               перейти к мобильной версии
             </a>
           </blockquote>

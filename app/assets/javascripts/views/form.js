@@ -195,12 +195,12 @@ var FormView = Backbone.View.extend({
         bottomMenu.$el.css('display', 'block');
         if (what == 'create') {
             this.$el.attr('action', '/create');
-            this.$el.find('.disclaimer').first().html('Создать новый тред');
+            this.$el.find('.disclaimer').first().html('Создать новый тред:');
             this.toggleTagsOrSage('tags');
             var menuValue = 'создать тред';
         } else {
             this.$el.attr('action', '/thread/' + rid + '/reply');
-            this.$el.find('.disclaimer').first().html('Ответить в тред #' + rid);
+            this.$el.find('.disclaimer').first().html('Ответить в тред #' + rid + ":");
             this.toggleTagsOrSage('sage');
             var menuValue = 'ответить';
         }
@@ -271,7 +271,7 @@ var FormView = Backbone.View.extend({
             if (clicked.hasClass('spoiler')) {
                 insertMarkup('%%', '%%');
             } else if (clicked.hasClass('quote')) {
-                insertMarkup('>', '');
+                insertMarkup('> ', ' ');
             }
         } else if (clicked.is('a')) {
             alert('hui');
@@ -293,7 +293,7 @@ var FormView = Backbone.View.extend({
 
     render: function() {
         var t = "<div class='divider errors'></div>";
-        t += "<div class='divider disclaimer'>Создать новый тред</div>";
+        t += "<div class='divider disclaimer'>Создать новый тред:</div>";
         t += "<div class='divider'>";
             t += "<input type='text' name='message[title]' id='form_title'";
             t += " placeholder='Тема сообщения, максимум 60 символов'>";
@@ -329,7 +329,7 @@ var FormView = Backbone.View.extend({
                 t += "</label>";
             t += "</div>";
         t += "</div>";
-        t += "<div id='captcha_field'>";
+        t += "<div class='divider' id='captcha_field'>";
             t += "<img alt='captcha' id='captcha_image' src='/assets/ui/loading.gif' />";
             t += "<input id='captcha_word' name='captcha[response]' placeholder='введите символы' type='text'>";
         t += "</div>";

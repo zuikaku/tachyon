@@ -1,4 +1,2 @@
-<% cache("#{@response[:thread][:rid]}") do %>
-  <%= render(partial: 'form',         locals: {creating:  "post"}) %>
-  <%= render(partial: 'thread',       object: @response[:thread])  %>
-<% end %>
+<%= render(partial: 'form',   locals: {action:  "/thread/#{@response[:thread][:rid]}/reply"}) %>
+<%= render(partial: 'thread', object: @response[:thread])  %>

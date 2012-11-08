@@ -4,16 +4,13 @@ class Ip < ActiveRecord::Base
   has_many  :r_files
   has_one   :ban
 
-  before_create do 
-    self.post_captcha_needed = true
-  end
-
   def self.get(address)
     unless (ip = Ip.where(address: address).first)
       ip = Ip.create({
         address:     address,
         last_thread: Time.now - 10.minutes,
-        last_post:   Time.now - 10.minutes, 
+        last_post:   Time.now - 10.minutes,
+        post_captcha_needed: true, 
       })
     end
     return ip
