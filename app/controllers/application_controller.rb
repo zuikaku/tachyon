@@ -86,10 +86,12 @@ class ApplicationController < ActionController::Base
         return render('/errors') unless @response[:errors].empty?
       end
       if params[:action] == "reply"
-        return redirect_to(controller: 'threads', action: 'show', rid: @thread.rid,
+        url = url_for(controller: 'threads', action: 'show', rid: @thread.rid,
           anchor: "i#{@post.rid}")
+        return redirect_to("#{url}")
       elsif params[:action] == "create"
-        return redirect_to(controller: 'threads', action: 'show', rid: @response[:thread_rid])
+        url = url_for(controller: 'threads', action: 'show', rid: @response[:thread_rid])
+        return redirect_to("#{url}")
       end
     end
   end
