@@ -1,6 +1,7 @@
 ru:
   overview: 'Обзор'
   thread:   'Тред'
+  about:    'Информация'
   errors:
     file:
       size:   'Размер файла не должен превышать'

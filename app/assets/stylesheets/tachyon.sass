@@ -147,7 +147,7 @@ footer
     margin-top: 0
     font-size: 16px
 
-#bottom_menu, #qr_form, #taglist, .manage_menu, #loading, #img_preview, .preview p, #settings
+#bottom_menu, #qr_form, #taglist, .manage_menu, #loading, #login, .preview p, #settings
   background: #222
   color: white
   opacity: 0.9
@@ -612,3 +612,52 @@ footer
     &.active
       text-decoration: underline
       text-shadow: none
+
+
+#about
+  max-width: 700px
+  margin: 0 auto
+  #about_menu
+    text-align: center
+    a
+      font-size: 18px
+      margin: 0px 10px 0px 10px
+      font-family: Georgia, serif
+      text-decoration: none
+      color: #666
+      &:hover, &.active
+        color: black
+        text-decoration: underline
+      &.active
+        font-weight: bold
+  blockquote
+    margin-top: 40px
+    font-size: 14px
+    text-align: justify
+    p
+      margin: 0px 0px 0px 30px
+      padding: 0
+  table
+    margin: 0 auto
+    width: 500px
+    font-size: 14px
+    td
+      background: #e5e5e5
+      border: 1px solid #ccc
+      padding: 6px
+      width: 50%
+      .spoiler
+        display: inline
+      &.header
+        font-weight: bold
+        color: #044983
+        font-size: 16px
+        text-align: center
+
+#login
+  position: fixed
+  width: 200px
+  height: 70px
+  z-index: 14
+  padding: 7px
+  opacity: 0

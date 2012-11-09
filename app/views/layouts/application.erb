@@ -3,17 +3,25 @@
     <title>Tachyon - <%= @title %></title>
     <meta http-equiv="Content-Type", content="text/html; charset=utf-8" />
     <%= csrf_meta_tags %>
-    <% if @mobile %>
-      <%= stylesheet_link_tag(:tachyon_mobile, media: "all") %>
-    <% else %>
-      <%= stylesheet_link_tag(:tachyon, media: "all") %>
-      <script type="text/javascript">
-        production    = <%= Rails.env.production?.to_s %>;
-        VERSION       = "<%= VERSION %>";
-        NAME          = "Tachyon";
-        tachyonPath   = "<%= javascript_path(:tachyon) %>";
-      </script>
-      <%= javascript_include_tag(:preload, cache: false) %>
+    <% cache("index/#{@mobile}") do %>
+      <% if @mobile %>
+        <%= stylesheet_link_tag(:tachyon_mobile, media: "all") %>
+      <% else %>
+        <%= stylesheet_link_tag(:tachyon, media: "all") %>
+        <script type="text/javascript">
+          production    = <%= Rails.env.production?.to_s %>;
+          VERSION       = "<%= VERSION %>";
+          NAME          = "Tachyon";
+          resources     =  {
+            mainScript: "<%= javascript_path(:tachyon) %>",
+            styles: {
+              photon:  "<%= stylesheet_path(:photon)  %>",
+              neutron: "<%= stylesheet_path(:neutron) %>",
+            }
+          }
+        </script>
+        <%= javascript_include_tag(:preload, cache: false) %>
+      <% end %>
     <% end %>
     <!-- 
       This is Freeport 7 to freelancer alpha one dash one.
@@ -30,7 +38,14 @@
         </div>
         <div id="footer">
           Tachyon <%= VERSION %>
-          <a href="http://<%= @host %>/utility/mobile-off">полная версия</a>
+          <br />
+          <% if session[:dont_force_mobile] %>
+            <a href="http://<%= @host.gsub('m.', '') + request.headers['REQUEST_PATH'] %>">полная версия</a>
+          <% else %>
+            <a href="http://<%= @host %>/utility/mobile-off">полная версия</a>
+          <% end %>
+          &nbsp;
+          <a href="<%= url_for(controller: 'about', action: 'site', trailing_slash: true) %>">информация</a>
         </div>
       <% else %>
         <div id='loading_container'>

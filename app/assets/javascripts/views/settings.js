@@ -158,6 +158,8 @@ var SettingsView = Backbone.View.extend({
                 }
                 return false;
             }
+        } else if (element.attr('name') == 'style') {
+            value = value.charAt(0).toLowerCase() + value.slice(1);
         }
         this.set(element.attr('name'), value);
         switch (element.attr('name')) {
@@ -165,6 +167,7 @@ var SettingsView = Backbone.View.extend({
             case 'shadows':         this._shadows();        break;
             case 'lamer_buttons':   this._lamer_buttons();  break;
             case 'mamka':           this._mamka();          break;
+            case 'style':           this._style();          break;
         }
         return false;
     },
@@ -196,13 +199,34 @@ var SettingsView = Backbone.View.extend({
         } else {
             $('.file_container img').css('opacity', 1);
         }
+        return this;
     },
+
+    _style: function() {
+        try {
+            var style = document.getElementById("other_style");
+            document.head.removeChild(style);
+        } catch (exception) {
+            // do nothing;
+        }
+        if (this.get('style') == 'tachyon') {
+            return this;
+        }
+        var style = document.createElement('link');
+        style.type = "text/css";
+        style.href = resources.styles[this.get('style')];
+        style.rel = "stylesheet";
+        style.id = "other_style";
+        document.head.appendChild(style);
+        return this;
+    },  
 
     _set: function() {
         this.
         //     // _fixed_header().
         //     // _lamer_buttons().
-                _mamka();
+                _mamka().
+                _style();
         //     // _shadows();
         return this;
     }, 

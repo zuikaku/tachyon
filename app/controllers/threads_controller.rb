@@ -18,7 +18,7 @@ class ThreadsController < ApplicationController
     return not_found if rid == 0
     if @mobile 
       cache = Rails.cache.read("views/#{rid}")
-      return render(text: cache, layout: 'application') if cache
+      return render(layout: 'application') if cache
     end
     thread_rid = RThread.connection.select_all("SELECT r_threads.rid 
         FROM r_threads WHERE r_threads.rid = #{rid} LIMIT 1")
@@ -120,7 +120,7 @@ class ThreadsController < ApplicationController
   def show_page(page_number)
     if @mobile == true
       cache = Rails.cache.read("views/#{params[:tag]}/#{page_number}")
-      return render(text: cache, layout: 'application') if cache
+      return render(layout: 'application') if cache
       get_tag
     end
     logger.info "reading json"
@@ -159,6 +159,7 @@ class ThreadsController < ApplicationController
         ORDER BY bump DESC LIMIT #{amount} OFFSET #{offset}")
       total = params[:rids].size
     else
+      return if @tag == nil and @mobile == true
       @title = @tag.name
       if params.has_key?(:hidden_tags) or params.has_key?(:hidden_posts)
         conditions = ["r_threads.rid NOT IN (?) AND tags.id = ?", [1], @tag.id]
@@ -195,7 +196,7 @@ class ThreadsController < ApplicationController
       @tag = params[:tag]
     else
       @tag = Tag.where(alias: params[:tag]).first
-      not_found if @tag == nil
+      return not_found if @tag == nil
     end
   end
 
@@ -212,7 +213,8 @@ class ThreadsController < ApplicationController
     end
 
     def validate_content
-      @post.r_file_id = 0 unless params[:file].kind_of?(String) and params[:video].empty?
+      params[:file] = "" unless params.has_key?(:file)
+      @post.r_file_id = 0 unless (params[:file].kind_of?(String) and params[:video].empty?)
       if @post.invalid? 
         @post.errors.to_hash.each_value do |array|
           array.each { |error| @response[:errors] << error }
@@ -310,6 +312,8 @@ class ThreadsController < ApplicationController
       @post.ip_id = @ip.id
       @post.message = parse(@post.message)
       @post.defence_token_id = @token.id if @token
+      logger.info "\n\n#{@post.valid?}"
+      logger.info @post.errors.inspect
       @post.save
       if @token and @token.updated_at < (Time.now - 1.day)
         @token.updated_at = @post.created_at

@@ -61,6 +61,7 @@ class ApplicationController < ActionController::Base
   end
 
   def mobile_off
+    session[:dont_force_mobile] = true
     if @host[0..1] == 'm.'
       path = @host.gsub('m.', '')
       return redirect_to("http://#{path}/utility/mobile-off")
@@ -110,9 +111,12 @@ class ApplicationController < ActionController::Base
   end
 
   def not_found
-    render('application/not_found') if @mobile == true
-    @response[:status] = 'not found'
-    respond!
+    if @mobile == true
+      return render('application/not_found') 
+    else
+      @response[:status] = 'not found'
+      respond!
+    end
   end
 
   def get_counters

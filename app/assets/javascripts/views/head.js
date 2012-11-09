@@ -3,11 +3,26 @@ var HeaderView = Backbone.View.extend({
 
     events: {
         'click #settings_link': 'showSettings',
+        'click #posting_info b': 'showAdminLogin',
     },
 
     initialize: function() {
         _.bindAll(this, 'render');
         this.render();
+    },
+
+    showAdminLogin: function(event) {
+        if (event.ctrlKey) {
+            if ($("#login").length == 0) {
+                var login = "<div id='login'>LOGIN</div>";
+                login = $(login);
+                var offset = $(event.currentTarget).offset().left
+                login.css('left', offset - 100);
+                login.css('top', login.height() + 30);
+                this.$el.after(login);
+                login.animate({opacity: 0.9}, 400);
+            }
+        }
     },
 
     setCounters: function(counters) {
@@ -38,7 +53,7 @@ var HeaderView = Backbone.View.extend({
         t += "<menu>"
             t += "<li><a href='#' id='tags_link'>тэги ↓</a></li>"
             t += "<li><a href='#' id='settings_link'>настройки</a></li>"
-            t += "<li><a href='/about/'>информация</a></li>"
+            t += "<li><a id='about_link' href='/about/'>информация</a></li>"
             t += "<li><a id='favorites_link' href='/favorites/'>избранное</a></li>"
             t += "<li><a id='live_link' href='/live/'>live!</a></li>"
         t += "</menu>"

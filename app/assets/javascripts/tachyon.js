@@ -19,7 +19,7 @@
 
 var settings, header, tagList, cometSubscription, previousPath,
 waitToHighlight, section, bottomMenu, loadingTimeout, threadsCollection,
-livePostsCollection, currentTag = null;
+livePostsCollection, currentTag, mobileLink = null;
 
 $(document).ready(function() {
 var MainRouter = Backbone.Router.extend({
@@ -27,6 +27,9 @@ var MainRouter = Backbone.Router.extend({
         '':                     'toRoot',
         'live/':                'live',
         'live':                 'trailingSlash',
+        'about':                'trailingSlash',
+        'about/':               'about',
+        'about/:action':        'about',
         'thread/:rid':          'show',
         ':rid.html':            'showOldHack',
         ':tag/':                'index',
@@ -62,7 +65,9 @@ var MainRouter = Backbone.Router.extend({
         if (cometSubscription != null) {
             cometSubscription.cancel();
             cometSubscription = null;
-        }   
+        }  
+        var href = "http://m." + document.location.host + document.location.pathname;
+        mobileLink.attr('href', href);
         return true;
     },
 
@@ -85,6 +90,25 @@ var MainRouter = Backbone.Router.extend({
         this.navigate("/thread/" + rid + hash, {trigger: true});
         hideLoadingIndicator();
         return false;
+    },
+
+    about: function() {
+        showLoadingIndicator();
+        $.ajax({
+            type: 'post',
+            url: document.location,
+            success: function(response) {
+                if (router.before(response) == false) {
+                    return false;
+                }
+                bottomMenu.vanish();
+                router.setTitle('Информация');
+                hideLoadingIndicator();
+                header.$el.find('#about_link').addClass('active');
+                section.html(response);
+                adjustFooter();
+            }
+        })
     },
 
     live: function() {
@@ -403,8 +427,9 @@ function initializeInterface() {
     mainContainer.append(settings.el);
     section = $("<section id='container'></section>");
     var footer = '<footer>Tachyon ' + VERSION
-    footer += "<a href='http://m." + document.location.host + "'>мобильная версия</a></footer"
+    footer += "<a id='mobile_link' href='http://m." + document.location.host + "'>мобильная версия</a></footer"
     mainContainer.append(section).append(footer);
+    mobileLink = $("#mobile_link");
     header.setFixed(settings.get('fixed_header'));
     adjustAbsoluteElements();
     $(window).resize(adjustAbsoluteElements);

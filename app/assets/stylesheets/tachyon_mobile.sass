@@ -100,8 +100,9 @@ hr
   color: #666
   font-family: Terminus, Consolas, monospace, sans-serif
   a 
-    display: block
     color: #666
+    &:hover
+      color: #06f
 
 #not_found
   text-align: center
@@ -256,3 +257,53 @@ hr
     color: red
   ul
     list-style-type: none
+
+#about
+  max-width: 700px
+  margin: 0 auto
+  #about_menu
+    text-align: center
+    a
+      font-size: 18px
+      margin: 0px 10px 0px 10px
+      font-family: Georgia, serif
+      text-decoration: none
+      color: #666
+      &:hover, &.active
+        color: black
+        text-decoration: underline
+      &.active
+        font-weight: bold
+  blockquote
+    margin-top: 40px
+    font-size: 14px
+    text-align: justify
+    p
+      margin: 0px 0px 0px 30px
+      padding: 0
+  table
+    margin: 0 auto
+    width: 500px
+    font-size: 14px
+    td
+      background: #e5e5e5
+      border: 1px solid #ccc
+      padding: 6px
+      width: 50%
+      .spoiler
+        display: inline
+    td.header
+      font-weight: bold
+      color: #044983
+      font-size: 16px
+      text-align: center
+
+
+.proofmark
+  background: #97E67E
+  display: inline-block
+  color: #2d4626
+  a
+    color: #006600
+    &:hover
+      color: #003300      

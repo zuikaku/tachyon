@@ -16,6 +16,6 @@ window.onload = function() {
     }
     var script = document.createElement('script');
     script.type = "text/javascript";
-    script.src = tachyonPath;
+    script.src = resources.mainScript;
     document.head.appendChild(script);
 }

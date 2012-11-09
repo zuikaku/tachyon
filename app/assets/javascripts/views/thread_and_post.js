@@ -45,12 +45,9 @@ var ThreadView = Backbone.View.extend({
             }
             var img = this.$el.find(".file_container img").first();
             if (img.attr('src') == file.url_small) {
-                // img.attr('width', file.columns);
-                // img.attr('height', file.rows);
-                img.removeAttr('width').removeAttr('height');
+                img.attr('width', file.columns).attr('height', file.rows);
                 img.attr('src', file.url_full);
-                var px = (document.body.clientWidth - 100) + "px";
-                img.css('max-width', px);
+                img.css('max-width', (document.body.clientWidth - 100) + "px");
             } else {
                 img.attr('width', file.thumb_columns);
                 img.attr('height', file.thumb_rows);
@@ -137,12 +134,14 @@ var ThreadView = Backbone.View.extend({
         if (video == true) {
             $(event.currentTarget).find('.play_button').css('opacity', 1);
         } else if (video == false && settings.get('search_buttons') == true) {
-            var t = "<span class='file_search'>";
-            var url = "http://freeport7.org" + this.model.get('file').url_full;
-            t += "Поиск: <a href='http://iqdb.org/?url=" + url
-            + "' target='_blank'>IQDB</a>";
-            t += "</span>";
-            $(event.currentTarget).append(t);
+            if (this.model.get('file').is_picture == true) {
+                var t = "<span class='file_search'>";
+                var url = "http://freeport7.org" + this.model.get('file').url_full;
+                t += "Поиск: <a href='http://iqdb.org/?url=" + url
+                + "' target='_blank'>IQDB</a>";
+                t += "</span>";
+                $(event.currentTarget).append(t);
+            }
         }
         if (settings.get('mamka') == true) {
             $(event.currentTarget).find('img').css('opacity', 1);   
