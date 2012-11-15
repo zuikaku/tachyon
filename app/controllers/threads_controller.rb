@@ -141,7 +141,7 @@ class ThreadsController < ApplicationController
   end
 
   def live 
-    return redirect_to(:root) if @mobile == true
+    return redirect_to(:root, only_path: true) if @mobile == true
     @response[:messages] = Array.new
     threads = RThread.order('created_at DESC').limit(15).to_a
     posts = RPost.order('created_at DESC').limit(15).to_a

@@ -8,11 +8,11 @@ end
 module Tachyon
   class Application < Rails::Application
     # config.active_record.observers = :tachyon_observer
-    config.time_zone = 'Moscow'
+    # config.time_zone = 'Moscow'
     config.i18n.default_locale = :ru
     config.encoding = "utf-8"
     config.filter_parameters += ["message[password]", "password"]
     config.assets.enabled = true
-    config.assets.version = "0.8"
+    config.assets.version = "0.9"
   end
 end
