@@ -188,7 +188,7 @@ class ApplicationController < ActionController::Base
       href = array[0].gsub!('[', '').strip!
       name = array[1].gsub!(']', '').strip!
       anon = 'http://anonym.to/?' unless (href.include?('freeport7.org') or href.include?('anonym.to'))
-      " <a href='#{anon + href}' target='_blank'>#{name}</a> "
+      " <a href='#{anon + href}' target='_blank'>#{name}</a>"
     end
     text.gsub!(/( |^)(http|https)\:\/\/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,4}(\/\S*)?/) do |href|
       anon = ''
