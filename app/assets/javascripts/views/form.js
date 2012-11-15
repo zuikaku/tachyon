@@ -76,7 +76,7 @@ var FormView = Backbone.View.extend({
         data.append('file',              this.$el.find('#file_field')[0].files[0]);
         data.append('video',             this.$el.find('#video_field').first().val());
         if (this.$el.find('#form_tags').first().css('display') == 'inline-block') {
-            data.append('tags', this.$el.find('#form_tags').first().val());
+            data.append('tags', this.$el.find('#tag_field').first().val());
         } else {
             var sage = this.$el.find('#sage input').first().attr('checked') == 'checked';
             data.append('message[sage]', sage);

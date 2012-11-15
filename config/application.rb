@@ -14,6 +14,6 @@ module Tachyon
     config.encoding = "utf-8"
     config.filter_parameters += ["message[password]", "password"]
     config.assets.enabled = true
-    config.assets.version = "1.002"
+    config.assets.version = "1.003"
   end
 end

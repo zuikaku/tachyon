@@ -292,6 +292,7 @@ class ThreadsController < ApplicationController
       end
       if @response[:errors].empty? and processing_thread?
         @tags = Array.new
+        logger.info params[:tags].inspect
         params[:tags].split(' ').each do |al|
           if (tag = Tag.where(alias: al).first) 
             @tags << tag unless (tag.alias == 'trash' or @tags.include?(tag))
