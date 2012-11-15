@@ -15,7 +15,7 @@ class SettingsRecord < ActiveRecord::Base
       speed_limits: {
         ip:       { thread: 2.minutes,  post: 13.seconds },
         captcha:  { thread: 10.minutes, post: 30.seconds },
-        global:   { thread: 1.minute,   post: 0.seconds  },
+        global:   1.minute,
         tau:      3, # threads per hour before automatic Tau mode
       },
       dyson: nil, 

@@ -4,6 +4,9 @@ var HeaderView = Backbone.View.extend({
     events: {
         'click #settings_link': 'showSettings',
         'click #posting_info b': 'showAdminLogin',
+        'click #tags_link': function() {
+            return false;
+        }
     },
 
     initialize: function() {
@@ -12,17 +15,61 @@ var HeaderView = Backbone.View.extend({
     },
 
     showAdminLogin: function(event) {
-        if (event.ctrlKey) {
+        if (event.ctrlKey && admin != true) {
             if ($("#login").length == 0) {
-                var login = "<div id='login'>LOGIN</div>";
+                var login = "<div id='login'><input type='password' /></div>";
                 login = $(login);
                 var offset = $(event.currentTarget).offset().left
                 login.css('left', offset - 100);
                 login.css('top', login.height() + 30);
                 this.$el.after(login);
+                login.find('input')
+                    .focus()
+                    .blur(this.hideAdminLogin)
+                    .bind('keydown', this.submitAdminLogin);
                 login.animate({opacity: 0.9}, 400);
             }
         }
+        return false;
+    },
+
+    hideAdminLogin: function() {
+        var login = $("#login");
+        login.animate({opacity: 0}, 300);
+        setTimeout(function() {
+            login.remove();
+        }, 310);
+        return false
+    },
+
+    submitAdminLogin: function(event) {
+        if (event.keyCode == 13) {
+            var input = $(event.currentTarget);
+            input.unbind();
+            input.attr('disabled', 'diabled');
+            input.css('opacity', 0.5);
+            $.ajax({
+                url: "/admin/login",
+                type: 'post',
+                data: {password: input.val()},
+                success: function(response) {
+                    if (response.status == 'success') {
+                        header.hideAdminLogin();
+                        admin = true;
+                        settings.getAdminSettings();
+                    } else {
+                        input.val('').removeAttr('disabled').css('opacity', 1);
+                        input.focus().blur(header.hideAdminLogin)
+                            .bind('keydown', header.submitAdminLogin);
+                    }
+                }, 
+                error: function() {
+                    input.css('border-color', 'red');
+                }
+            });
+            return false;
+        }
+        return true;
     },
 
     setCounters: function(counters) {

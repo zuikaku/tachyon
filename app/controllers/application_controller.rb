@@ -7,10 +7,9 @@ class ApplicationController < ActionController::Base
     return render(text: 'unverified request', status: 403) unless verified_request?
     @host = request.headers['HTTP_HOST']
     @host = request.headers['HTTP_SERVER_NAME'] if Rails.env.production?
-    logger.info @host.inspect
     @response = Hash.new
     @start_time = Time.now.usec
-    utility = %w( mobile_off garbage_collection ).include?(params[:action])
+    utility = %w( mobile_off gc ).include?(params[:action])
     check_mobile unless utility
     if @mobile == false and utility == false
       return render('application/index') if request.get?
@@ -19,9 +18,7 @@ class ApplicationController < ActionController::Base
         if request.get? and request.headers['QUERY_STRING'].include?('tag=')
           return redirect_to("http://#{@host}/#{request.headers['QUERY_STRING'].split('=')[1]}/")
         end
-        address = request.remote_ip.to_s
-        address = request.headers['HTTP_REAL_IP'] if Rails.env.production?
-        @ip = Ip.get(address)
+        get_ip
         set_captcha if @ip.post_captcha_needed
         @counters = get_counters
       end
@@ -42,21 +39,21 @@ class ApplicationController < ActionController::Base
   end
 
   def ping 
-    address = request.remote_ip.to_s
-    address = request.headers['HTTP_REAL_IP'] if Rails.env.production?
-    @ip = Ip.get(address)
+    get_ip
     return render(text: 'pong')
   end
 
   def get_tags
-    address = request.remote_ip.to_s
-    address = request.headers['HTTP_REAL_IP'] if Rails.env.production?
-    @ip = Ip.get(address)
+    get_ip
     @response[:tags] = Tag.all.to_json
     @response[:counters] = get_counters
+    @response[:admin] = true if session[:moder_id] != nil
     set_captcha if @ip.post_captcha_needed
     check_defence_token
-    set_defence_token if @token == nil
+    if @token == nil
+      settings = SettingsRecord.get
+      set_defence_token if settings.defence[:dyson] != :omicron
+    end
     respond!
   end
 
@@ -71,7 +68,7 @@ class ApplicationController < ActionController::Base
     end
   end
 
-  def garbage_collection
+  def gc
     return not_found unless request.local?
     date = (Time.now - 3.days).at_midnight
     parameters = { ip_id: nil, defence_token_id: nil }
@@ -126,9 +123,15 @@ class ApplicationController < ActionController::Base
       Rails.cache.write("post_count", posts)
     end
     return {
-      online: Ip.where(updated_at: (Time.now - 7.minutes)..Time.now).count,
+      online: Ip.where(updated_at: (Time.now - 5.minutes)..Time.now).count,
       posts: posts,
     }
+  end
+
+  def get_ip
+    address = request.remote_ip.to_s
+    address = request.headers['HTTP_REAL_IP'] if Rails.env.production?
+    @ip = Ip.get(address)
   end
 
   def set_captcha(defensive=false)
@@ -141,7 +144,6 @@ class ApplicationController < ActionController::Base
       end        
     end
     @response[:captcha] = Captcha.get_key(defensive) 
-    logger.info "\n\napplication: #{defensive}\n\n"
     session[:captcha] = @response[:captcha]
   end
 
@@ -185,13 +187,13 @@ class ApplicationController < ActionController::Base
       array = href.split('||')
       href = array[0].gsub!('[', '').strip!
       name = array[1].gsub!(']', '').strip!
-      anon = 'http://anonym.to/?' unless href.include?('freeport7.org')
+      anon = 'http://anonym.to/?' unless (href.include?('freeport7.org') or href.include?('anonym.to'))
       " <a href='#{anon + href}' target='_blank'>#{name}</a> "
     end
     text.gsub!(/( |^)(http|https)\:\/\/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,4}(\/\S*)?/) do |href|
       anon = ''
       href.strip!
-      unless href.include?('freeport7.org')
+      unless (href.include?('freeport7.org') or href.include?('anonym.to'))
         anon = "http://anonym.to/?"
       end
       " <a href='#{anon + href}' target='_blank'>#{href}</a> "
@@ -216,7 +218,7 @@ class ApplicationController < ActionController::Base
           id = post.rid if post.kind_of?(RThread)
           id = post.r_thread.rid if post.kind_of?(RPost)
           url = url_for(controller: 'threads', action: 'show',
-                        rid: id,  anchor: "i#{post.rid}")
+                        rid: id,  anchor: "i#{post.rid}", only_path: true)
           "<div class='post_link'><a href='#{url}'>&gt;&gt;#{post.rid}</a></div>"
         else
           "&gt;&gt;#{id}"
@@ -238,7 +240,7 @@ class ApplicationController < ActionController::Base
             id = post.rid if post.kind_of?(RThread)
             id = post.r_thread.rid if post.kind_of?(RPost)
             url = url_for(controller: 'threads', action:     'show',
-                          rid:        id,        anchor:     "i#{post.rid}")
+                          rid:        id,        anchor:     "i#{post.rid}", only_path: true)
             result = "<div class='proofmark'><a href='#{url}'>###{post.rid}</a></div>"
           end
         end
@@ -248,22 +250,28 @@ class ApplicationController < ActionController::Base
     if @post.kind_of?(RPost)
       text.gsub! /##(OP)|##(ОП)|##(op)|##(оп)/ do |op| # oppan gangnam style
         if @post.password == @thread.password
-          url = url_for(action: 'show', rid: @thread.rid, anchor: "i#{@thread.rid}")      
+          url = url_for(action: 'show', rid: @thread.rid, anchor: "i#{@thread.rid}",
+            only_path: true)      
           "<div class='proofmark'><a href='#{url}'>#{op}</a></div>"
         else
           "###{op}"
         end
       end
     end
-    # if moder?
-    #   text.gsub!("##ADMIN", "<span class='admin_proofmark'>Edison Trent</span>") if @moder.level == 3
-    # end
+    if @moder != nil
+      text.gsub!("##ADMIN", "<span class='admin_proofmark'>Администрация</span>") if @moder.level == 3
+    end
     text.gsub!(/^&gt;(.+)$/) do |text| 
       "<span class='quote'>#{text.strip}</span>"
     end
-    text.gsub!(/\r*\n(\r*\n)+/, '<br /><br />')
-    text.gsub!(/\r*\n/,        '<br />')
+    text.gsub!(/\r*\n(\r*\n)+/, ' <br /><br /> ')
+    text.gsub!(/\r*\n/,        ' <br /> ')
     text.strip!
+    without_links = text.gsub(/<a.+<\/a>/, "")
+    without_links.scan(/(\S{90})/).each do |longword|
+      regexp = Regexp.new("(#{longword[0]})")
+      text.gsub!(regexp, '\1 ')
+    end
     return text
   end
 end

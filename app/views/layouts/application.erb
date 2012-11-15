@@ -1,6 +1,10 @@
 <html>
   <head>
-    <title>Tachyon - <%= @title %></title>
+    <% if @title != nil %>
+      <title>FP7 - <%= @title %></title>
+    <% else %>
+      <title>FP7</title>
+    <% end %>
     <meta http-equiv="Content-Type", content="text/html; charset=utf-8" />
     <%= csrf_meta_tags %>
     <% cache("index/#{@mobile}") do %>
@@ -11,12 +15,12 @@
         <script type="text/javascript">
           production    = <%= Rails.env.production?.to_s %>;
           VERSION       = "<%= VERSION %>";
-          NAME          = "Tachyon";
+          NAME          = "FP7";
           resources     =  {
             mainScript: "<%= javascript_path(:tachyon) %>",
             styles: {
-              photon:  "<%= stylesheet_path(:photon)  %>",
-              neutron: "<%= stylesheet_path(:neutron) %>",
+              photon:   "<%= stylesheet_path(:photon)  %>",
+              mauron:   "<%= stylesheet_path(:mauron) %>",
             }
           }
         </script>

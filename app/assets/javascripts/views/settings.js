@@ -7,6 +7,7 @@ var SettingsView = Backbone.View.extend({
         'click .close_button': 'close',
         'change input, select': 'onChange',
         'click #settings_switch div': 'switchView',
+        "submit #admin_settings form": "submitAdminSettings",
     },
 
     initialize: function() {
@@ -14,13 +15,14 @@ var SettingsView = Backbone.View.extend({
             hidden_posts:       [],
             hidden_tags:        ['nsfw', 'trash'],
             favorites:          [],
+            seen:               [],
             threads_per_page:   10,
             fixed_header:       true,
             strict_hiding:      false,
             scroll_to_post:     true,
             shadows:            false,
             lamer_buttons:      false,
-            search_buttons:     true,
+            search_buttons:     false,
             ctrl_submit:        true,
             mamka:              false,
             style:              'tachyon',
@@ -47,6 +49,36 @@ var SettingsView = Backbone.View.extend({
             }
         }
         return contains;
+    },
+
+    submitAdminSettings: function(event) {
+        event.preventDefault();
+        var form = $(event.currentTarget);
+        var data = {};
+        data['dyson'] = form.find("select[name='dyson']").val();
+        limits = ['[tau]', '[ip][thread]', '[ip][post]',
+        '[captcha][thread]', '[captcha][post]', '[global]'];
+        limits.forEach(function(limit) {
+            limit = "speed_limits" + limit;
+            data[limit] = form.find("input[name='" + limit + "']").val();
+        });
+        if (form.find("input[name='spamtxt[enabled]']").attr('checked') == 'checked') {
+            data['spamtxt[enabled]'] = 'on';
+        }
+        data['spamtxt[words]'] = form.find('textarea').val();
+        form.find('#admin_settings_submit').val('.................');
+        $.ajax({
+            type: 'post',
+            data: data,
+            url: "/admin/settings/set",
+            success: function(response) {
+                form.find('#admin_settings_submit').val('Сохранить');
+            }, 
+            error: function() {
+                document.location.reload();
+            }
+        });
+        return false;
     },
 
 
@@ -111,6 +143,9 @@ var SettingsView = Backbone.View.extend({
     },
 
     show: function() {
+        if (admin == true && this.$el.find("#admin_settings").length == 0) {
+            this.getAdminSettings();
+        }
         this.$el.css({display: 'block', opacity: 0});
         this.adjust();
         this.$el.animate({opacity: 0.95}, 200);
@@ -133,9 +168,33 @@ var SettingsView = Backbone.View.extend({
         return this;
     }, 
 
+    getAdminSettings: function() {
+        if (admin != true) {
+            return false;
+        }
+        $.ajax({
+            type: 'post',
+            url: '/admin/settings/get',
+            success: function(response) {
+                settings.$el.find("#settings_switch").append("<div class" +
+                    "='admin_settings'>Защита</div>");
+                settings.$el.append(response);
+                var dyson = settings.$el.find("#admin_settings #dyson select").val();
+                settings.$el.find("#" + dyson).css('display', 'block');
+            }
+        })
+    },
+
     onChange: function(event) {
         var element = $(event.currentTarget);
         var value = element.val();
+        if (admin == true && this.$el.find("#admin_settings").css('display') != 'none') {
+            if (element.attr('name') == 'dyson') {
+                this.$el.find("#tau, #sigma, #omicron").css("display", 'none');
+                this.$el.find("#" + value).css('display', 'block');
+            }
+            return false;
+        } 
         if (element.attr('name') == 'threads_per_page') {
             tryInteger = parseInt(value);
             if (tryInteger >= 5 && tryInteger <= 20) {
@@ -206,9 +265,7 @@ var SettingsView = Backbone.View.extend({
         try {
             var style = document.getElementById("other_style");
             document.head.removeChild(style);
-        } catch (exception) {
-            // do nothing;
-        }
+        } catch (exception) { /* do nothing; */ }
         if (this.get('style') == 'tachyon') {
             return this;
         }
@@ -235,13 +292,15 @@ var SettingsView = Backbone.View.extend({
         this.$el.find('.active').removeClass('active');
         var link = $(event.currentTarget);
         link.addClass('active');
+        this.$el.find("#content_settings, #view_settings, #admin_settings").css('display', 'none');
         if (link.hasClass("content_settings") == true) {
             this.$el.find("#content_settings").css('display', 'block');
-            this.$el.find("#view_settings").css('display', 'none');
-        } else {
-            this.$el.find("#content_settings").css('display', 'none');
+        } else if (link.hasClass("view_settings") == true) {
             this.$el.find("#view_settings").css('display', 'block');
+        } else {
+            this.$el.find("#admin_settings").css('display', 'block');
         }
+        this.adjust();
         return false;
     },
 
@@ -254,7 +313,7 @@ var SettingsView = Backbone.View.extend({
         + "</div>";
         t += "<div id='view_settings'>"
         t += "<label>Стиль: <select name='style'>";
-            ['tachyon', 'photon', 'neutron'].forEach(function(style) {
+            ['tachyon', 'photon', 'mauron'].forEach(function(style) {
                 t += "<option name='" + style + "'";
                 if (settingsLink.get('style') == style) {
                     t += " selected='selected'";
@@ -300,7 +359,6 @@ var SettingsView = Backbone.View.extend({
         один из скрытых вами тэгов, не будут отображаться в обзоре совсем.</p>";
         t += "</div>";
         this.el.innerHTML = t;
-        this.$el.find('#content_settings').css('display', 'none');
         return this;
     },
 

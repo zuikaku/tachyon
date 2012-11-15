@@ -84,6 +84,7 @@ var FormView = Backbone.View.extend({
         if (action == 'index') {
             data.append('returnpost', 'yeah sure');
         }
+        settings.set('password', this.$el.find('#form_password').first().val());
         $.ajax({
             url: this.$el.attr('action'),
             data: data,
@@ -102,9 +103,15 @@ var FormView = Backbone.View.extend({
                         router.addPost(response.post, true);
                     } else if (response.thread_rid != undefined) {
                         settings.toggleFavorite(response.thread_rid, 'add');
-                        router.navigate('/thread/' + response.thread_rid, {trigger: true});
+                        if (action != 'live') {
+                            router.navigate('/thread/' + response.thread_rid, {trigger: true});
+                        }
                     } else if (response.post_rid != undefined) {
                         waitToHighlight = response.post_rid;
+                    }
+                    if (response.password != undefined) {
+                        form.$el.find("#form_password").val(response.password);
+                        settings.set('password', response.password);
                     }
                 } else {
                     for (i=0; i < response.errors.length; i++) {
@@ -128,7 +135,17 @@ var FormView = Backbone.View.extend({
 
     clear: function() {
         this.$el.find('#form_title, #video_field, textarea').val('');
-        this.$el.find('#file_field')[0].outerHTML = "<input type='file' name='file' id='file_field'>";
+        var file = this.$el.find('#file_field');
+        try {
+            file[0].outerHTML = "<input type='file' name='file' id='file_field'>";
+        } catch (exception) {
+            // do nothing
+        }
+        try {
+            file.parent().html(file.parent().html());
+        } catch (exception) {
+            // do nothing
+        }
         return this;
     },
 
@@ -274,7 +291,14 @@ var FormView = Backbone.View.extend({
                 insertMarkup('> ', ' ');
             }
         } else if (clicked.is('a')) {
-            alert('hui');
+            var url = prompt("Введите URL:");
+            var name = prompt("Введите название ссылки:");
+            if (url.length > 0 && name.length > 0) {
+                if (url.substring(0, 7) != 'http://' && url.substring(0, 8) != 'https://') {
+                    url = 'http://' + url;
+                }
+                insertMarkup(("[" + url + " || " + name + "]"), "");
+            }
         }
         return false;
     },
@@ -325,7 +349,11 @@ var FormView = Backbone.View.extend({
                     t += "тэги: <input type='text' id='tag_field' name='tags'>";
                 t += "</label><label>";
                     t += "пароль: <input type='password' id='form_password'";
-                    t += " value='huipizda' name='message[password]'>";
+                    t += " name='message[password]' ";
+                    if (settings.get('password') != undefined) {
+                        t += "value='" + settings.get("password") + "' ";
+                    }
+                    t += "/>";
                 t += "</label>";
             t += "</div>";
         t += "</div>";

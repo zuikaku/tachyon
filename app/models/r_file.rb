@@ -59,7 +59,6 @@ class RFile < ActiveRecord::Base
       end
       type = file.content_type.split('/')[1]
       type = 'swf' if type == 'x-shockwave-flash'
-      # type = file.original_filename.split('.')[-1] 
       if ['octet-stream', 'x-rar-compressed'].include?(type)
         type = file.original_filename.split('.')[-1] 
       end
@@ -67,6 +66,7 @@ class RFile < ActiveRecord::Base
         errors << I18n.t('errors.file.type')
         return errors
       end
+      type = 'jpg' if type == 'jpeg'
       path = "#{Rails.root}/public/files"
       Dir::mkdir(path) unless File.directory?(path)
       filename = 'fp7-' + Time.now.to_i.to_s + rand(1..9).to_s

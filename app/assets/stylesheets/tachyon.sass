@@ -4,8 +4,7 @@ html, body
   font-family: "Trebuchet MS", Trebuchet, sans-serif
   background-color: #f3f3f3
   background-image: url("ui/noema-texture.png")
-  min-width: 1000px
-  // overflow-x: hidden
+  min-width: 830px
 
 @font-face
   font-family: Freelancer
@@ -33,13 +32,13 @@ header a, #taglist a, #settings_switch div
   text-decoration: none
   &:hover, &.active, &.selected
     color: #fff
-    text-shadow: 0 0 0.2em #fff
+    text-shadow: 0 0 0.4em #fff
 
 ul, menu 
   list-style-type: none
 
 header 
-  min-width: 1000px
+  min-width: 830px
   background: #222
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.50), 0 -1px 0 rgba(0, 0, 0, 0.1) inset
   padding: 5px 5px 3px 20px
@@ -94,6 +93,7 @@ a.post_link
     color: #888
 
 footer 
+  z-index: 1
   margin-top: 50px
   text-align: center
   // display: table
@@ -127,7 +127,7 @@ footer
   top: 0
   display: table
   background: #222
-  padding: none
+  padding: 0
   padding-top: 40px
   opacity: 0.9
   font-weight: normal
@@ -262,7 +262,7 @@ footer
   margin: 70px 15px 15px 15px
   position: relative
 
-.post_link, .context_link
+.post_link
   display: inline-block
   padding: 0px 1px 0px 1px
   a 
@@ -278,6 +278,11 @@ footer
     color: #006600
     &:hover
       color: #003300      
+
+.admin_proofmark
+  color: red
+  font-weight: bold
+  font-style: italic
 
 .thread_container, #thread_container
   margin: 30px 0px 30px 0px
@@ -357,6 +362,7 @@ footer
   float: left
   margin-right: 7px
   img, .video_preview, .video
+    position: relative
     margin: 0
     padding: 0
     display: table
@@ -402,10 +408,10 @@ footer
   height: 240
   img
     position: relative
-    z-index: 1
+    z-index: 2
   .play_img
     position: absolute
-    z-index: 2
+    z-index: 3
     display: table
 
 .expand_text_button
@@ -417,7 +423,7 @@ footer
   display: table
   &.hidden .post
     padding: 10px
-.post, .preview .thread
+.post
   margin: 2px 0px 2px 0px
   padding: 0px 10px 10px 10px
   display: table
@@ -437,6 +443,12 @@ footer
     padding-bottom: 0
     color: #666
     background: none
+    .context_link
+      float: right
+      color: #888
+      font-style: italic
+      &:hover
+        color: #06f
     .title
       color: black
       font-weight: bold
@@ -542,10 +554,11 @@ footer
   font-size: 14px
   color: #ccc
   width: 650px
-  // height: 450px
   display: none
   z-index: 13
   padding: 1px 20px 20px 20px
+  #content_settings, #admin_settings
+    display: none
   .close_button
     font-size: 18px
     font-weight: bold
@@ -571,6 +584,40 @@ footer
     margin: 4px 0px 0px 40px
     font-size: 12px
     text-align: justify
+  #admin_settings
+    form
+      margin: 0
+      padding: 0
+    #admin_settings_submit
+      margin: 0 auto
+      margin-top: 20px
+      // display: table
+      margin-left: 45%
+    textarea
+      border: 1px solid #aaa
+      width: 95%
+      max-width: 95%
+      height: 70px
+      max-height: 70px
+    #tau, #sigma, #omicron
+      display: none
+      font-size: 12px
+      color: white
+      font-style: italic
+    #dyson, #speed_limits
+      width: 49%
+    #dyson
+      float: left
+    #speed_limits
+      float: right
+      border-left: 1px solid #888
+      padding-left: 5px
+      label
+        margin-left: 20px
+    #speed_limits input, .tau
+      width: 30px
+      text-align: center  
+
 
 #live_container
   display: table
@@ -618,18 +665,22 @@ footer
   max-width: 700px
   margin: 0 auto
   #about_menu
-    text-align: center
+    display: table
+    padding: 5px
+    margin: 0 auto
+    background: #222
+    border: 1px solid #666
     a
       font-size: 18px
-      margin: 0px 10px 0px 10px
+      margin: 0px 30px 0px 30px
       font-family: Georgia, serif
       text-decoration: none
-      color: #666
+      color: #aaa
       &:hover, &.active
-        color: black
-        text-decoration: underline
+        color: #fff
+        text-shadow: 0 0 0.2em #fff
       &.active
-        font-weight: bold
+        text-decoration: underline
   blockquote
     margin-top: 40px
     font-size: 14px
@@ -656,8 +707,57 @@ footer
 
 #login
   position: fixed
-  width: 200px
-  height: 70px
+  width: 180px
+  height: 40px
   z-index: 14
   padding: 7px
   opacity: 0
+  text-align: center
+  input
+    background: none
+    border: 1px solid #888
+    color: white
+    margin-top: 10px
+
+
+.manage_container
+  position: relative
+  display: none
+  .manage_button
+    margin-left: 8px
+    font-size: 13px
+    font-family: monospace
+    font-weight: bold
+    cursor: pointer
+    &:hover
+      color: red
+  .manage_menu
+    position: absolute
+    right: 0
+    padding: 5px
+    font-size: 14px
+    z-index: 6
+    div
+      display: block !important
+      color: #bbb
+      margin: 0
+      &:hover
+        cursor: pointer
+        color: white
+        text-decoration: underline
+
+.post, .thread 
+  textarea
+    font-family: "Trebuchet MS", Trebuchet, sans-serif
+    font-size: 14px
+    background: none
+    color: inherit
+
+.edit_submit 
+  display: block
+  
+.post_hidden
+  margin: 3px 0px 3px 0px
+  font-size: 12px
+  font-style: italic
+  color: #666

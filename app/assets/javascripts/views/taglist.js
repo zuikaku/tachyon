@@ -2,11 +2,11 @@ var TagListView = Backbone.View.extend({
     tagName:    'div',
     id:         'taglist',
     el:         '',
-    gotTags:    false,
     tagsArray:  [],
 
-    initialize: function() {
+    initialize: function(callback) {
         _.bindAll(this, 'render');
+        this.callback = callback;
         this.render();
     },
 
@@ -60,7 +60,7 @@ var TagListView = Backbone.View.extend({
             type: 'post',
             url: '/utility/get_tags',
             data: token,
-            async: false,
+            async: true,
             success: function(response) {
                 taglist.counters = response.counters
                 if (response.captcha != undefined) {
@@ -68,14 +68,16 @@ var TagListView = Backbone.View.extend({
                 }
                 if (response.defence_token != undefined) {
                     settings.set('defence_token', response.defence_token);
+                } 
+                if (response.admin != undefined) {
+                    admin = true;
                 }
                 taglist.tagsArray = JSON.parse(response.tags);
                 t += taglist.renderTagTable(3, false);
-                taglist.gotTags = true;
-                return false;
+                taglist.$el.append(t);
+                taglist.callback();
             },
         });
-        this.$el.append(t);
         return this;
     },
 

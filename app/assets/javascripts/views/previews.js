@@ -9,23 +9,30 @@ var PreviewsView = Backbone.View.extend({
         this.cache = new PostsCollection;
     },
 
+    offset: function(element, xy) {
+        var c = 0;
+        while (element) {
+            c += element[xy];
+            element = element.offsetParent;
+        }
+        return c;
+    },
+
     showPreview: function(event, fromPostId) {
         var link = $(event.currentTarget);
         this.current = link;
-        var offset = function(element, xy) {
-            var c = 0;
-            while (element) {
-                c += element[xy];
-                element = element.offsetParent;
-            }
-            return c;
+        if (link.hasClass('context_link')) {
+            var postRid = link.attr('href').split('/');
+            postRid = postRid[postRid.length-1];
+            link = link[0];
+        } else {
+            link = link.find('a')[0];
+            var postRid = link.hash.match(/\d+/);
         }
-        link = link.find('a')[0];
-        var postRid = link.hash.match(/\d+/);
         var screenWidth = document.body.clientWidth;
         var screenHeight = window.innerHeight;
-        var previewX = offset(link, 'offsetLeft') + link.offsetWidth / 2;
-        var previewY = offset(link, 'offsetTop');
+        var previewX = this.offset(link, 'offsetLeft') + link.offsetWidth / 2;
+        var previewY = this.offset(link, 'offsetTop');
         if (event.clientY < (screenHeight * 0.75)) {
             previewY += link.offsetHeight;
         }
@@ -96,73 +103,37 @@ var PreviewsView = Backbone.View.extend({
 
     getPost: function(postRid, preview) {
         postRid = parseInt(postRid);
-        var post = null;
-        var target = null;
-        var query = threadsCollection.where({rid: postRid});
-        if (query.length > 0) {
-            target = query[0];
-        } else {
-            if (action == 'live') {
-                query = livePostsCollection.where({rid: postRid});
-                if (query.length > 0) {
-                    target = query[0];
-                }
-            } else {
-                threadsCollection.each(function(thread) {
-                    query = thread.posts.where({rid: postRid});
-                    if (query.length > 0) {
-                        target = query[0];
-                    }
-                });
-            }
-            if (target == null) {
-                query = previews.cache.where({rid: postRid});
-                if (query.length > 0) {
-                    target = query[0];
-                }
-            }
-        }
-        if (target != null) {
-            post = target.clone();
-        }
+        var post = router.getPostLocal(postRid, true);
         if (post != null) {
             this.showPost(post, preview);
         } else {
-            $.ajax({
-                url: '/utility/get_post',
-                type: 'post',
-                async: true,
-                data: {rid: postRid},
-                success: function(response) {
-                    if (response.post == null) {
-                        preview.notFound();
-                    } else {
-                        post = new PostModel(response.post);
-                        if (previews.cache.where({rid: post.get('rid')}).length == 0) {
-                            previews.cache.add(post);
-                        }
-                        if (previews.cache.size() > 10)  {
-                            var deleting = previews.cache.last();
-                            previews.cache.remove(deleting);
-                            delete deleting.preview;
-                            delete deleting.view;
-                            delete deleting;
-                        }
-                        previews.showPost(post, preview);
-                    }
-                },
-                error: function(response) {
+            router.getPostRemote(postRid, function(remotePost) {
+                if (remotePost == null) {
+                    preview.notFound();
+                } else if (remotePost == false) {
                     preview.error();
-                    return false;
+                } else {
+                    if (previews.cache.where({rid: remotePost.get('rid')}).length == 0) {
+                        previews.cache.add(remotePost);
+                    }
+                    if (previews.cache.size() > 10)  {
+                        var deleting = previews.cache.last();
+                        previews.cache.remove(deleting);
+                        delete deleting.preview;
+                        delete deleting.view;
+                        delete deleting;
+                    }
+                    previews.showPost(remotePost, preview);
                 }
             });
-        } 
+        }
         return false;
     },
 
     showPost: function(post, preview) {
         post.view = new PostView({id: 'i' + post.get('rid')}, post);
-        var element = post.view.render().$el;
+        post.view.isPreview = true;
+        var element = post.view.render(false, true).$el;
         post.preview = preview;
         preview.render(element);
         preview.$el.css('opacity', 0)

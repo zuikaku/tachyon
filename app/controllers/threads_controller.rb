@@ -39,7 +39,7 @@ class ThreadsController < ApplicationController
   end
 
   def show_old 
-    redirect_to(action: show, rid: params[:rid])
+    redirect_to(action: 'show', rid: params[:rid], only_path: true)
   end
 
   def page 
@@ -75,12 +75,77 @@ class ThreadsController < ApplicationController
     respond!
   end
 
+  def edit_post
+    @response[:status] = 'fail'
+    @response[:errors] = Array.new
+    @post = RPost.get_by_rid(params[:rid].to_i)
+    @post = RThread.get_by_rid(params[:rid].to_i) unless @post
+    if @post
+      @response[:errors] << t('errors.edit.password') if @post.password != params[:password] 
+      @response[:errors] << t('errors.edit.time') if @post.created_at < (Time.now - 5.minutes)
+      if @response[:errors].empty?
+        @thread = @post.r_thread if @post.kind_of?(RPost)
+        @thread = @post if @post.kind_of?(RThread)
+        @post.message = parse(params[:text])
+        @post.save
+        @response[:post] = @post.jsonify
+        @response[:status] = 'success'
+        @thread.tags.each { |tag| Rails.cache.delete_matched("views/#{tag.to_s}") }
+        Rails.cache.delete_matched("#{@thread.rid}")
+        Rails.cache.delete_matched("views/~")
+        counters = get_counters
+        counters[:post] = @response[:post]
+        CometController.publish('/counters', counters)
+      end
+    else
+      @response[:errors] << 'post not found'
+    end
+    respond!
+  end
+
+  def delete_post
+    @response[:status] = 'fail'
+    @response[:errors] = Array.new
+    post = RPost.get_by_rid(params[:rid].to_i)
+    post = RThread.get_by_rid(params[:rid].to_i) unless post
+    if post
+      @response[:errors] << t('errors.edit.password') if post.password != params[:password] 
+      @response[:errors] << t('errors.edit.time') if post.created_at < (Time.now - 5.minutes)
+      if @response[:errors].empty?
+        if params[:file] == 'true'
+          post.r_file.destroy
+          post.r_file_id = nil
+          post.save
+        else
+          post.destroy
+        end
+        thread = post.r_thread if post.kind_of?(RPost)
+        thread = post if post.kind_of?(RThread)
+        thread.tags.each { |tag| Rails.cache.delete_matched("views/#{tag.to_s}") }
+        Rails.cache.delete_matched("#{thread.rid}")
+        Rails.cache.delete_matched("views/~")
+        Rails.cache.delete('post_count')
+        counters = get_counters
+        if params[:file] == 'true'
+          counters[:post] = post.jsonify
+        else
+          counters[:delete] = post.rid
+        end
+        CometController.publish('/counters', counters)
+        @response[:status] = 'success'
+      end
+    else
+      @response[:errors] << 'post not found'
+    end
+    respond!
+  end
+
   def live 
     return redirect_to(:root) if @mobile == true
     @response[:messages] = Array.new
-    threads = RThread.order('created_at DESC').limit(10).to_a
-    posts = RPost.order('created_at DESC').limit(10).to_a
-    messages = posts + threads
+    threads = RThread.order('created_at DESC').limit(15).to_a
+    posts = RPost.order('created_at DESC').limit(15).to_a
+    messages = threads + posts
     messages.sort! { |x, y| y.rid <=> x.rid }
     messages = messages[0..14].reverse
     files_ids = Array.new
@@ -89,7 +154,11 @@ class ThreadsController < ApplicationController
     end
     files = RFile.where("r_files.id IN (?)", files_ids).to_a
     messages.each do |message|
-      @response[:messages] << message.jsonify(files)
+      if message.kind_of?(RThread)
+        @response[:messages] << message.jsonify(files)
+      else
+        @response[:messages] << message.jsonify(files, nil, true)
+      end
     end
     respond!
   end
@@ -123,7 +192,6 @@ class ThreadsController < ApplicationController
       return render(layout: 'application') if cache
       get_tag
     end
-    logger.info "reading json"
     amount = params[:amount].to_i
     amount = 7 if @mobile
     params[:rids] = Array.new unless params.has_key?(:rids)
@@ -203,6 +271,8 @@ class ThreadsController < ApplicationController
   def process_post
     def get_password
       if params[:message].has_key?(:password)
+        logger.info "\n\n\n"
+        logger.info params[:message][:password].inspect
         return params[:message][:password] unless params[:message][:password].empty?
       end
       return (100000000 + rand(1..899999999)).to_s
@@ -243,6 +313,7 @@ class ThreadsController < ApplicationController
           @post.r_file_id = nil
         end
       end
+      @post.password = get_password
       return @response[:errors].empty?
     end
 
@@ -250,7 +321,7 @@ class ThreadsController < ApplicationController
       check_defence_token
       case @settings.defence[:dyson]
       when :tau
-        if processing_thread?
+        if processing_thread? and @moder == nil
           if (captcha = Captcha.where(key: session[:captcha]).first)
             unless captcha.defensive == true
               @response[:errors] << t('errors.dyson.tau') 
@@ -270,6 +341,16 @@ class ThreadsController < ApplicationController
         @response[:ban] = @ip.ban.jsonify
         return false
       end
+      if @settings.defence[:spamtxt][:enabled] == true
+        [@post[:message], @post[:password], @ip.address].each do |to_scan|
+          @settings.defence[:spamtxt][:words].each do |regexp|
+            unless to_scan.scan(regexp).empty?
+              @response[:errors] << t('errors.spamtxt')
+              return false
+            end
+          end
+        end
+      end
       if @ip.post_captcha_needed or @settings.defence[:dyson] != nil
         validate_captcha
         @response[:errors] << t('errors.captcha.old') if @captcha == nil
@@ -288,32 +369,25 @@ class ThreadsController < ApplicationController
           return not_found
         end
       end
-      logger.info @checking.inspect
       delta = (Time.now - @checking).to_i
-      if delta < limit
+      if delta < limit and @moder == nil
         @response[:errors] << t('errors.speed_limit.ip') + Verbose::seconds(limit - delta)
       end
       return @response[:errors].empty?
     end
 
-    logger.info "starting"
-    address = request.remote_ip.to_s
-    address = request.headers['HTTP_REAL_IP'] if Rails.env.production?
-    @ip = Ip.get(address) 
+    get_ip
+    @moder = Moder.find(session[:moder_id]) if session[:moder_id] != nil
     @response[:errors] = Array.new
     @settings = SettingsRecord.get
     @post = RThread.new(params[:message]) if params[:action] == 'create'
     @post = RPost.new(params[:message]) if params[:action] == 'reply'
-    logger.info @post.inspect
     validate_content if validate_permission
-    logger.info @response.inspect
     if @response[:errors].empty?
       @post.rid = IdCounter.get_next_rid(processing_thread?)
       @post.ip_id = @ip.id
       @post.message = parse(@post.message)
       @post.defence_token_id = @token.id if @token
-      logger.info "\n\n#{@post.valid?}"
-      logger.info @post.errors.inspect
       @post.save
       if @token and @token.updated_at < (Time.now - 1.day)
         @token.updated_at = @post.created_at
@@ -346,7 +420,7 @@ class ThreadsController < ApplicationController
         Rails.cache.delete_matched("#{@thread.rid}")
         @thread.tags.each { |tag| Rails.cache.delete_matched("views/#{tag.to_s}") }
         limit = @settings.defence[:speed_limits][:captcha][:post]
-        post_json = @post.jsonify([@file], @thread.rid)
+        post_json = @post.jsonify([@file], @thread.rid, true)
         CometController.publish("/thread/#{@thread.rid}", post_json)
         if params.has_key?(:returnpost) 
           @response[:post] = post_json 
@@ -361,11 +435,14 @@ class ThreadsController < ApplicationController
       delta = Time.now - @checking
       @ip.post_captcha_needed = true if delta.to_i < limit
       @response[:status] = 'success'
+      @response[:password] = @post.password
       @ip.update_last(@post)
     end
     @response[:status] = 'fail' unless @response[:errors].empty?
     @ip.post_captcha_needed = true unless @settings.defence[:dyson] == nil
+    @ip.post_captcha_needed = false if @moder != nil
     set_captcha if @ip.post_captcha_needed and not @tau
+    logger.info @response.inspect
     respond!
   end
 end

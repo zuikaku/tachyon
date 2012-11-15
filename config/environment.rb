@@ -9,7 +9,7 @@ MOBILE_USER_AGENTS =  Regexp.new ('palm|blackberry|nokia|phone|midp|mobi|symbian
                                   'pdxgw|netfront|xiino|vodafone|portalmmm|sagem|mot-|sie-|ipod|up\\.b|' +
                                   'webos|amoi|novarra|cdm|alcatel|pocket|ipad|iphone|mobileexplorer|' +
                                   'mobile|msie') # explorer sucks cocks
-VERSION = "0.7 alpha" 
+VERSION = "0.9 RC" 
 
 Encoding.default_external = Encoding::UTF_8
 Encoding.default_internal = Encoding::UTF_8

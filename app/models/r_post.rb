@@ -29,20 +29,6 @@ class RPost < ActiveRecord::Base
   serialize :replies_rids, Array
   validates_with TachyonMessageValidator
 
-  # before_create do
-  #   thread = self.r_thread
-  #   thread.replies_count += 1
-  #   thread.bump = Time.now unless self.sage
-  #   thread.save
-  #   Rails.cache.delete_matched("#{thread.rid}")
-  #   thread.tags.each { |tag| Rails.cache.delete_matched("views/#{tag.to_s}") }
-  #   if (post_count = Rails.cache.read('post_count'))
-  #     posts = RPost.where(created_at: Time.now.at_midnight..Time.now).count
-  #     posts += RThread.where(created_at: Time.now.at_midnight..Time.now).count 
-  #     Rails.cache.write("post_count", posts)
-  #   end
-  # end
-
   before_destroy do
     if (thread = self.r_thread)
       previous = thread.r_posts.offset(thread.replies_count-2).limit(1).first
@@ -51,10 +37,10 @@ class RPost < ActiveRecord::Base
       thread.save
     end
     self.r_file.destroy if self.has_file?
-    regexp = /<div class='post_link'><a href='.{3,25}\/(\d+).html#i(\d+)'>&gt;&gt;(\d+)<\/a><\/div>/
+    regexp = /<div class="|'(post_link|proofmark)"|'><a href="|'\/thread\/\d+#i\d+"|'>(&gt;&gt;|##)?(\d+)?<\/a><\/div>/
     self.message.scan(regexp).each do |link|
-      post = RPost.where(rid: link[1].to_i).first
-      post = RThread.where(rid: link[1].to_i).first unless post
+      post = RPost.where(rid: link[2].to_i).first
+      post = RThread.where(rid: link[2].to_i).first unless post
       if post
         post.replies_rids.each do |hash|
           post.replies_rids.delete(hash) if hash[:post] == self.rid
@@ -72,18 +58,30 @@ class RPost < ActiveRecord::Base
     return (self.r_file_id != nil)
   end
 
-  def jsonify(files=nil, thread_rid=nil)
-    thread_rid = self.r_thread.rid if thread_rid == nil
+  def jsonify(files=nil, thread_rid=nil, thread_title=nil)
+    if thread_rid == nil or thread_title == true
+      @thread = self.r_thread
+      thread_rid = @thread.rid
+      thread_title = @thread.title
+      thread_title = @thread.message if @thread.title.empty?
+    end
+    if thread_title != nil 
+      thread_title.gsub!(/<.+?>/, ' ')
+      thread_title.gsub!('  ', ' ')
+      thread_title.strip!
+      thread_title = thread_title[0..43] + "..." if thread_title.length > 45
+    end
     data = {
-        rid:            self.rid,
-        message:        self.message,
-        title:          self.title,
-        replies_rids:   self.replies_rids,
-        sage:           self.sage,
-        thread_rid:     thread_rid,
-        created_at:     self.created_at,
-        file:           nil,
-      }
+      rid:            self.rid,
+      message:        self.message,
+      title:          self.title,
+      replies_rids:   self.replies_rids,
+      sage:           self.sage,
+      thread_rid:     thread_rid,
+      thread_title:   thread_title,
+      created_at:     self.created_at,
+      file:           nil,
+    }
     if self.has_file?
       if files == nil
         data[:file] = self.r_file.jsonify

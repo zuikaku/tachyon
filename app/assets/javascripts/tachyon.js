@@ -19,7 +19,8 @@
 
 var settings, header, tagList, cometSubscription, previousPath,
 waitToHighlight, section, bottomMenu, loadingTimeout, threadsCollection,
-livePostsCollection, currentTag, mobileLink = null;
+livePostsCollection, currentTag, mobileLink, mouseOverElement = null;
+var admin = false;
 
 $(document).ready(function() {
 var MainRouter = Backbone.Router.extend({
@@ -101,12 +102,13 @@ var MainRouter = Backbone.Router.extend({
                 if (router.before(response) == false) {
                     return false;
                 }
+                controller = 'about'; action = 'about';
                 bottomMenu.vanish();
                 router.setTitle('Информация');
                 hideLoadingIndicator();
                 header.$el.find('#about_link').addClass('active');
                 section.html(response);
-                adjustFooter();
+                router.adjustFooter();
             }
         })
     },
@@ -130,18 +132,20 @@ var MainRouter = Backbone.Router.extend({
                 window.scrollTo(0, 0);
                 livePostsCollection = new PostsCollection;
                 threadsCollection = new ThreadsCollection;
-                var handleMessage = function(message) {
+                var handleMessage = function(message, update) {
                     if (message.tags == undefined) {
-                        router.addPost(message);
+                        router.addPost(message, undefined, update);
                     } else {
                         var thread = router.buildThread(message, false);
                         liveContainer.prepend(thread.container);
                         threadsCollection.add(thread.model);
                     }
                 }
-                response.messages.forEach(handleMessage);
+                response.messages.forEach(function(model) {
+                    handleMessage(model, false);
+                });
                 cometSubscription = cometClient.subscribe('/live', handleMessage);
-                adjustFooter();
+                router.adjustFooter();
                 return false;
             },
             error: router.showError, 
@@ -194,7 +198,7 @@ var MainRouter = Backbone.Router.extend({
                 }
                 checkHash();
                 cometSubscription = cometClient.subscribe('/thread/' + rid, router.addPost);
-                adjustFooter();
+                router.adjustFooter();
                 return false;
             },
             error: router.showError,
@@ -262,7 +266,7 @@ var MainRouter = Backbone.Router.extend({
                 if (response.pages != undefined) {
                     section.append(paginator.render(response.pages, page, tag).el);
                 }
-                adjustFooter();
+                router.adjustFooter();
                 return false;
             },
             error: router.showError,
@@ -288,12 +292,19 @@ var MainRouter = Backbone.Router.extend({
         return { container: container, model: thread }
     },
 
-    addPost: function(post_json, scroll) {
+    addPost: function(post_json, scroll, update) {
         var post = new PostModel(post_json);
         if (action == 'live') {
+            if (update == undefined) {
+                update = true;
+            }
             post.view = new PostView({id: 'i' + post.get('rid')}, post);
             livePostsCollection.add(post);
-            $('#live_container').prepend(post.view.render(true).el);
+            var container = $("#live_container");
+            container.prepend(post.view.render(update).el);
+            if (update != false) {
+                container.find('.post_container').last().remove();
+            }
         } else {
             var thread = threadsCollection.where({rid: post.get('thread_rid')})[0];
             thread.posts.add(post);
@@ -319,21 +330,23 @@ var MainRouter = Backbone.Router.extend({
                 }
             }
         }, 100);
-        adjustFooter();
+        router.adjustFooter();
         return false;
     },
 
     notFound: function() {
+        controller = 'application'; action = 'not_found';
         var t = "<div class='not_found'><h1>404</h1>";
         t += "<span>По этой ссылке ничего нет. Совсем.</span></div>";
         section.html(t);
         bottomMenu.vanish();
         hideLoadingIndicator();
-        adjustFooter();
+        router.adjustFooter();
         return this;
     },
 
     showError: function(response) {
+        controller = 'application'; action = 'error';
         bottomMenu.vanish();
         hideLoadingIndicator();
         if (response.errors != undefined) {
@@ -344,8 +357,60 @@ var MainRouter = Backbone.Router.extend({
         } else {
             section.html(response.responseText);
         }
-        adjustFooter();
+        router.adjustFooter();
         return this;
+    },
+
+    adjustFooter: function() {
+        if (mainContainer.height() < (window.innerHeight - 100)) {
+            $('footer').css({position: 'absolute', bottom: 0});
+        } else {
+            $('footer').css({position: 'static', bottom: 'none'});
+        }
+        return false;
+    },
+
+    getPostLocal: function(postRid, clone) {
+        postRid = parseInt(postRid);
+        var collections = [threadsCollection, previews.cache, livePostsCollection];
+        threadsCollection.forEach(function(thread) {
+            collections.push(thread.posts);
+        });
+        for (var i = 0; i < collections.length; i++) {
+            if (collections[i] != null) {
+                var query = collections[i].where({rid: postRid});
+                if (query.length > 0) {
+                    if (query[0].deleted != true) {
+                        if (clone == true) {
+                            return query[0].clone();
+                        } else {
+                            return query[0];
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    },
+
+    getPostRemote: function(postRid, callback) {
+        var post = null;
+        $.ajax({
+            url: '/utility/get_post',
+            type: 'post',
+            async: false,
+            data: {rid: postRid},
+            success: function(response) {
+                if (response.post != null) {
+                    post = new PostModel(response.post);
+                } 
+                callback(post);
+            },
+            error: function() {
+                callback(false);
+            }
+        });
+        return false;
     },
 });
 
@@ -393,16 +458,7 @@ function hideLoadingIndicator() {
 function adjustAbsoluteElements() {
     tagList.adjust();
     settings.adjust();
-    adjustFooter();
-}
-
-function adjustFooter() {
-    if (mainContainer.height() < (window.innerHeight - 100)) {
-        $('footer').css({position: 'absolute', bottom: 0});
-    } else {
-        $('footer').css({position: 'static', bottom: 'none'});
-    }
-    return false;
+    router.adjustFooter();
 }
 
 function checkHash() {
@@ -416,9 +472,20 @@ function checkHash() {
     }
 }
 
+
+
 /////////////////////////////////////////////////////////////////////
 
 function initializeInterface() {
+    settings.renderTags(tagList.renderTagTable(5, true));
+    mainContainer = $('#main_container');
+    loadingIndicator = $("#loading");
+    router = new MainRouter;
+    form = new FormView;
+    bottomMenu = new BottomMenuView;
+    paginator = new PaginatorView;
+    previews = new PreviewsView;
+
     mainContainer.append(tagList.el);
     mainContainer.append(header.el);
     mainContainer.append(bottomMenu.el);
@@ -455,33 +522,39 @@ function initializeInterface() {
         }
     });
     cometClient = new Faye.Client('/comet', {
-        timeout: 120,
-        retry: 2
+        timeout: 110,
+        retry: 3
     });
     cometClient.disable('websoket');
     var countersSubscription = cometClient.subscribe('/counters', function(message) {
         header.setCounters(message);
+        if (message.post != undefined) {
+            var post = router.getPostLocal(message.post.rid);
+            if (post != null) {
+                var view = post.view;
+                view.model = new PostModel(message.post);
+                view.render(true);
+            }
+        } else if (message.delete != undefined) {
+            var post = router.getPostLocal(message.delete);
+            if (post != null) {
+                if (post.view != undefined) {
+                    post.view.$el.remove();
+                    delete post.view;
+                }
+                post.deleted = true;
+                delete post;
+            }
+        }
         return false;
     });
 
     setInterval(function() {
-        $.ajax({url: '/utility/ping', type: 'post'});
+        $.post('/utility/ping');
     }, 60000)
 }
 
-
 settings = new SettingsView;
 header = new HeaderView;
-tagList = new TagListView;
-if (tagList.gotTags == true) {
-    settings.renderTags(tagList.renderTagTable(5, true));
-    mainContainer = $('#main_container');
-    loadingIndicator = $("#loading");
-    router = new MainRouter;
-    form = new FormView;
-    bottomMenu = new BottomMenuView;
-    paginator = new PaginatorView;
-    previews = new PreviewsView;
-    initializeInterface();
-}
+tagList = new TagListView(initializeInterface);
 });

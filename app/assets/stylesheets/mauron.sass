@@ -3,11 +3,29 @@ html, body
   background-image: none
   color: #bdbdbd
   
-a, .post_link a
+a, .post_link a, #bottom_menu span
   color: #9cc250
   &:hover
     color: #cf6
     text-shadow: #FFD200 0px 0px 12px
+
+#bottom_menu, #qr_form, .manage_menu, #loading, #login, .preview p, #settings
+  background-color: #111
+
+#qr_form, #settings
+  input, textarea
+    background: none
+    border-color: #444
+
+#qr_form 
+  .divider.disclaimer, .form_submit
+    color: #cf6
+    border-color: #444
+
+header h3
+  color: #cf6
+  &:hover
+    text-shadow: #FFD200 0px 0px 12px    
 
 header a, #taglist a
   &:hover, &.active, &.selected
@@ -45,19 +63,25 @@ a.post_link, .post_header a.post_link
 .post .post_header
   color: #888
   .title
-    color: white
-  span
-    a, a:visited
-      color: #aaa
-      &:hover
-        text-decoration: none
-        color: #fff
+    color: #bbb
+
+.post .post_header span, .thread .file_info
+  a, a:visited
+    color: #aaa
+    &:hover
+      text-decoration: none
+      color: #fff
 
 .thread_container, #thread_container
   .omitted  
     background: #333
     border: 1px solid #525252
 
+.thread .title
+  color: #9cc250
+  &:hover
+    color: #cf6
+    text-shadow: #FFD200 0px 0px 12px
 
 #about
   #about_menu
@@ -98,3 +122,13 @@ header #posting_info b
 .post.highlighted
   background: #323232
   border: 1px dashed #6ca250
+
+.replies_rids
+  color: #888 !important
+
+#paginator
+  color: #888
+  a.current
+    background: #222
+    border: 1px solid #555
+    color: #cf6

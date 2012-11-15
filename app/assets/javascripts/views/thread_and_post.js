@@ -6,14 +6,25 @@ var ThreadView = Backbone.View.extend({
     hidden:      false,
 
     events:     {
-        "mouseenter .file_container":       "showFileSearch",
-        "mouseleave  .file_container":      "hideFileSearch",
         "click .post_header .post_link":    "callReplyForm",
+        "click .thread_body a.post_link":   "callReplyForm",
         "click .pic_url":                   "showPicture",
         "click .omitted a":                 "expand",
         "click .fav_button":                "toggleFavorite",
         "click .hide_button":               "toggleHiding",
         "click .video_url":                 "showVideo",
+        "click .manage_button":             "showManageMenu",
+        "click .edit_button":               "editShow",
+        "click .edit_submit":               "editSubmit",
+        "click .delete_button, .delete_file_button": "submitDeletion",
+        "mouseenter":                       "showManageButton",
+        "mouseleave":                       "hideManageButton",
+        "mouseenter .file_container":       "showFileSearch",
+        "mouseleave .file_container":       "hideFileSearch",
+        'mouseleave .manage_button, .manage_menu': "hideManageMenu",
+        'mouseenter .manage_menu': function() {
+            mouseOverElement = this;
+        },
         "mouseenter blockquote .post_link, .replies_rids .post_link, .proofmark, .context_link": 'showPreview',
         "mouseleave blockquote .post_link, .replies_rids .post_link, .proofmark, .context_link":  'previewLinkOut',
     },
@@ -22,6 +33,126 @@ var ThreadView = Backbone.View.extend({
         this.model = model;
         this.full = full;
         return this;
+    },
+
+    submitDeletion: function(event) {
+        data = {rid: this.model.get('rid'), password: $('#form_password').val()};
+        var post = this;
+        if (confirm('Точно удалить?')) {
+            if (event.currentTarget.className == 'delete_file_button') {
+                data.file = true;
+                var element = this.$el.find('.file_container');
+                element.css('opacity', '0.3');
+            } else {
+                var element = this.$el
+                element.css('opacity', '0.5');
+            }
+            $.ajax({
+                type: 'post',
+                url: '/utility/delete_post',
+                data: data,
+                success: function(response) {
+                    if (response.status != 'success') {
+                        element.css('opacity', '1');
+                        alert(response.errors);
+                    }
+                }
+            })
+        }
+    },
+
+    editShow: function(event) {
+        var blockquote = this.$el.find('blockquote');
+        var textarea = $("<textarea></textarea>");
+        textarea.css('width', (blockquote.width() + 10) + "px");
+        textarea.css('height', (blockquote.height() + 10) + "px");
+        var text = blockquote.html();
+        this.initialMessageText = blockquote.html();
+        text = text.replace(/<br( \/)*>\s{0,1}/g, "\n");
+        text = text.replace(/<i>(.+)?<\/i>/g, "*$1*");
+        text = text.replace(/<b>(.+)?<\/b>/g, "**$1**");
+        text = text.replace(/<u>(.+)?<\/u>/g, "__$1__");
+        text = text.replace(/<s>(.+)?<\/s>/g, "_$1_");
+        text = text.replace(/<s>(.+)?<\/s>/g, "_$1_");
+        var r = /<div class="(post_link|proofmark)"><a href="\/thread\/\d+#i\d+">(&gt;&gt;|##)?(\d+)?<\/a><\/div>/g;
+        text = text.replace(r, "$2$3");
+        r = /<a href="(.+)?" target="_blank">(.+)?<\/a>/g
+        text = text.replace(r, "[$1 || $2]");
+        textarea.html(text);
+        blockquote.replaceWith(textarea);
+        textarea.before("<input type='submit' class='edit_submit' value='сохранить' />");
+    },
+
+    editSubmit: function(event) {
+        this.$el.find("textarea, .edit_submit")
+            .attr('disabled', 'disabled')
+            .css('opacity', '0.5');
+        var post = this;
+        $.ajax({
+            url: "/utility/edit_post",
+            type: 'post',
+            data: {
+                rid:        post.model.get('rid'),
+                text:       post.$el.find('textarea').val(),
+                password:   form.$el.find("#form_password").val(),
+            }, 
+            success: function(response) {
+                post.$el.find(".edit_submit").remove();
+                var blockquote = $("<blockquote></blockquote>");
+                if (response.status != 'success') {
+                    post.$el.find("textarea").replaceWith(blockquote)
+                    blockquote.html(post.initialMessageText);
+                    alert(response.errors);
+                }
+            }, 
+            error: function() {
+                alert('Неизвестная ошибка. Проверьте соединение.');
+            }
+        });
+    },
+
+    showManageMenu: function(event) {
+        mouseOverElement = null;
+        var link = $(event.currentTarget);
+        var editable = this.renderDateTime(this.model.get('created_at'), true);
+        var t = "<div class='manage_menu'>";
+        if (editable == true) {
+            t += "<div class='edit_button'>редактировать</div>" +
+            "<div class='delete_button'>удалить</div>";
+            if (this.className != 'thread' && this.model.get('file') != undefined) {
+                t += "<div class='delete_file_button'>удалить файл</div>";
+            }
+        }
+        if (this.$el.hasClass('post_container')) {
+            t += "<div class='hide_button'>скрыть</div>";
+        }
+        t += "</div>";
+        link.after(t);
+        return false;
+    },
+
+    hideManageMenu: function(event) {
+        mouseOverElement = null;
+        setTimeout(function() {
+            if (mouseOverElement == null) {
+                $('.manage_menu').remove();
+            }
+        }, 400);
+        return true;
+    },
+
+    showManageButton: function() {
+        if (this.isPreview != true) {
+            var editable = this.renderDateTime(this.model.get('created_at'), true);
+            if (this.className == 'thread' && editable == false) {
+                return false;
+            }
+            this.$el.find(".manage_container").css('display', 'inline');
+        }
+    },
+
+    hideManageButton: function() {
+        $('.manage_container').css('display', 'none');
     },
 
     showPreview: function(event) {
@@ -45,7 +176,22 @@ var ThreadView = Backbone.View.extend({
             }
             var img = this.$el.find(".file_container img").first();
             if (img.attr('src') == file.url_small) {
-                img.attr('width', file.columns).attr('height', file.rows);
+                var max = (document.body.clientWidth - 150);
+                var height = file.rows;
+                var width = file.columns;
+                if (height > max || width > max) {
+                    var heightScale = max / height;
+                    var widthScale = max / width;
+                    if (widthScale > heightScale) {
+                        var scale = heightScale;
+                    } else {
+                        var scale = widthScale;
+                    }
+                    height *= scale;
+                    width *= scale;
+                }
+
+                img.attr('width', width).attr('height', height);
                 img.attr('src', file.url_full);
                 img.css('max-width', (document.body.clientWidth - 100) + "px");
             } else {
@@ -53,6 +199,7 @@ var ThreadView = Backbone.View.extend({
                 img.attr('height', file.thumb_rows);
                 img.attr('src', file.url_small);
             }
+            router.adjustFooter();
             return false;
         }
     },
@@ -85,18 +232,31 @@ var ThreadView = Backbone.View.extend({
     toggleHiding: function(event) {
         event.preventDefault();
         var rid = this.model.get('rid');
-        var container = this.$el.parent();
+        if (this.className == 'thread') {
+            var container = this.$el.parent();    
+        } else {
+            var container = this.$el;            
+        }
         if (settings.isHidden(rid) == false)  {
             settings.hide(rid);
-            this.el.innerHTML = this.renderHidden();
-            container.find('.post_container').remove();
+            if (settings.get('strict_hiding') == true) {
+                if (this.className == 'thread') {
+                    container.next().remove();
+                }
+                container.remove();
+            } else {
+                this.el.innerHTML = this.renderHidden();
+                container.find('.post_container').remove();
+            }
         } else {
             settings.unhide(rid);
             this.render();
-            this.model.posts.each(function(post) {
-                post.view = new PostView({id: 'i' + post.get('rid')}, post);
-                container.append(post.view.render().el);
-            });
+            if (this.className == 'thread') {
+                this.model.posts.each(function(post) {
+                    post.view = new PostView({id: 'i' + post.get('rid')}, post);
+                    container.append(post.view.render().el);
+                });
+            }
         }
         return false;
     },
@@ -108,7 +268,7 @@ var ThreadView = Backbone.View.extend({
 
     showVideo: function(event) {
         event.preventDefault();
-        var url = "https://www.youtube.com/v/" + this.model.get('file').filename + 
+        var url = "https://www.youtube.com/v/" + this.model.get('file')['filename'] + 
         "?version=3&autoplay=1";
         var t = "<object width='320' height='240' class='video'>"
         + "<param name='movie' value='" + url + "'>"
@@ -160,7 +320,7 @@ var ThreadView = Backbone.View.extend({
         return false;
     },
 
-    renderDateTime: function(datetime) {
+    renderDateTime: function(datetime, checkEdit) {
         datetime = datetime.split("T");
         var date = datetime[0].split('-');
         var today = new Date();
@@ -175,6 +335,18 @@ var ThreadView = Backbone.View.extend({
         date[2] = parseInt(date[2]);
         if (today.getDate() == date[2] && today.getMonth() == date[1]-1 
             && today.getFullYear() == date[0]) {
+            if (checkEdit == true) {
+                var postTime = new Date(datetime);
+                var nowTime = new Date;
+                var editable = true;
+                if (postTime.getUTCHours() != nowTime.getUTCHours()) {
+                    editable = false;
+                } 
+                if (postTime.getMinutes() < (nowTime.getMinutes() - 5)) {
+                    editable = false;
+                }
+                return editable;
+            }
             var t = 'сегодня в ';
         } else if (today.getDate()-1 == date[2] && today.getMonth() == date[1]-1
             && today.getFullYear() == date[0]) {
@@ -189,6 +361,9 @@ var ThreadView = Backbone.View.extend({
             t += date[0] + ' г. в ';
         }
         t += datetime[1].substring(0, 8);
+        if (checkEdit == true) {
+            return false;
+        }
         return t;
     },
 
@@ -414,6 +589,7 @@ var ThreadView = Backbone.View.extend({
             t += "<span class='thread_info'>";
                 t += this.renderDateTime(this.model.get('created_at')) + ', ';
                 t += this.renderTagList(this.model.get('tags'));
+                t += "<div class='manage_container'><span class='manage_button'>×</span></div>";
             t += "</span>";
             t += "<blockquote>" + this.model.get('message') + "</blockquote>";
             if (this.model.get('replies_rids').length > 0) {
@@ -439,15 +615,12 @@ var PostView = ThreadView.extend({
     tagName:    'div',
     className:  'post_container',
     el:         '',
+    isPreview:  false,
 
     initialize: function(attributes, model) {
         this.model = model;
         this.$previews = $('#previews').first();
         return this;
-    },
-
-    testing: function() {
-        alert(this.model.get('rid'));
     },
 
     highlight: function() {
@@ -456,7 +629,18 @@ var PostView = ThreadView.extend({
         return this;
     },
 
-    render: function(updateReferences) {
+    renderHidden: function() {
+        var t = "<div class='post_hidden'>скрытый пост" +
+        "<img src='/assets/ui/unhide.png' class='hide_button' /> </div>";
+        return t;
+    },
+
+    render: function(updateReferences, isPreview) {
+        this.ridHidden = settings.isHidden(this.model.get('rid'));
+        if (this.ridHidden == true && isPreview != true) {
+            this.el.innerHTML = this.renderHidden();
+            return this;
+        }
         var url = "/thread/" + this.model.get('thread_rid') + "#i" + this.model.get('rid');
         var t = "<div class='post'>";
         t += "<div class='post_header'>";
@@ -470,6 +654,11 @@ var PostView = ThreadView.extend({
             if (this.model.get('file') != null) {
                 t += this.renderFileInfo(this.model.get('file'));  
             }
+            if (action == 'live' && this.model.get('thread_title') != undefined) {
+                t += "<a href='/thread/" + this.model.get('thread_rid') + "' class='context_link'>" + 
+                this.model.get('thread_title') + "</a>";
+            }
+            t += "<div class='manage_container'><span class='manage_button'>×</span></div>";
         t += "</div>";
         t += "<div class='post_body'>";
             if (this.model.get('file') != null) {
@@ -486,31 +675,19 @@ var PostView = ThreadView.extend({
             this.el.firstChild.style.margin = "3px 0px 3px 0px";
         }
         if (updateReferences == true) {
-            var model = this.model
+            var model = this.model;
             $.each(this.$el.find('blockquote .post_link'), function(index, div) {
                 var postId = $(div).find('a').first().attr('href').split('#');
                 postId = parseInt(postId[postId.length - 1].substring(1));
-                var target = null;
-                var query = threadsCollection.where({rid: postId});
-                if (query.length > 0) {
-                    target = query[0];
-                } else {
-                    if (action == 'live') {
-                        query = livePostsCollection.where({rid: postId});
-                        if (query.length > 0) {
-                            target = query[0];
-                        }
-                    } else {
-                        threadsCollection.each(function(thread) {
-                            query = thread.posts.where({rid: postId});
-                            if (query.length > 0) {
-                                target = query[0];
-                            }
-                        });
-                    }
-                }
+                var target = router.getPostLocal(postId);
                 if (target != null) {
                     var rids = target.get('replies_rids');
+                    for (var i = 0; i < rids.length; i++) {
+                        if (rids[i].post == model.get('rid')) {
+                            return this;
+                            break;
+                        }
+                    }
                     rids.push({thread: model.get('thread_rid'), post: model.get('rid')});
                     target.set('replies_rids', rids);
                     var post = target.view.$el;
