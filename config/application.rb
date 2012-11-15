@@ -9,6 +9,7 @@ module Tachyon
   class Application < Rails::Application
     # config.active_record.observers = :tachyon_observer
     # config.time_zone = 'Moscow'
+    config.time_zone = 'Central Time (US & Canada)'
     config.i18n.default_locale = :ru
     config.encoding = "utf-8"
     config.filter_parameters += ["message[password]", "password"]
