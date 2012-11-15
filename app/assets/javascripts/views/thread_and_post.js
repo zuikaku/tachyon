@@ -74,6 +74,8 @@ var ThreadView = Backbone.View.extend({
         text = text.replace(/<u>(.+)?<\/u>/g, "__$1__");
         text = text.replace(/<s>(.+)?<\/s>/g, "_$1_");
         text = text.replace(/<s>(.+)?<\/s>/g, "_$1_");
+        text = text.replace(/<span class="quote">(.+)?<\/span>/g, "$1");
+        text = text.replace(/<span class="spoiler">(.+)?<\/span>/g, "%%$1%%");
         var r = /<div class="(post_link|proofmark)"><a href="\/thread\/\d+#i\d+">(&gt;&gt;|##)?(\d+)?<\/a><\/div>/g;
         text = text.replace(r, "$2$3");
         r = /<a href="(.+)?" target="_blank">(.+)?<\/a>/g
