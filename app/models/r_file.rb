@@ -69,7 +69,7 @@ class RFile < ActiveRecord::Base
       type = 'jpg' if type == 'jpeg'
       path = "#{Rails.root}/public/files"
       Dir::mkdir(path) unless File.directory?(path)
-      filename = 'fp7-' + Time.now.to_i.to_s + rand(1..9).to_s
+      filename = 'fp7-' + Time.zone.now.to_i.to_s + rand(1..9).to_s
       path += "/#{filename}"
       thumb = "#{path}s.#{type}"
       path += ".#{type}"

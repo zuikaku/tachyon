@@ -9,7 +9,7 @@ class RThread < ActiveRecord::Base
   validates_with TachyonMessageValidator
 
   before_create do
-    self.bump = Time.now
+    self.bump = Time.zone.now
     self.replies_rids = Array.new
   end
 

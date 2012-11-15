@@ -82,7 +82,7 @@ class ThreadsController < ApplicationController
     @post = RThread.get_by_rid(params[:rid].to_i) unless @post
     if @post
       @response[:errors] << t('errors.edit.password') if @post.password != params[:password] 
-      @response[:errors] << t('errors.edit.time') if @post.created_at < (Time.now - 5.minutes)
+      @response[:errors] << t('errors.edit.time') if @post.created_at < (Time.zone.now - 5.minutes)
       if @response[:errors].empty?
         @thread = @post.r_thread if @post.kind_of?(RPost)
         @thread = @post if @post.kind_of?(RThread)
@@ -110,7 +110,7 @@ class ThreadsController < ApplicationController
     post = RThread.get_by_rid(params[:rid].to_i) unless post
     if post
       @response[:errors] << t('errors.edit.password') if post.password != params[:password] 
-      @response[:errors] << t('errors.edit.time') if post.created_at < (Time.now - 5.minutes)
+      @response[:errors] << t('errors.edit.time') if post.created_at < (Time.zone.now - 5.minutes)
       if @response[:errors].empty?
         if params[:file] == 'true'
           post.r_file.destroy
@@ -369,7 +369,7 @@ class ThreadsController < ApplicationController
           return not_found
         end
       end
-      delta = (Time.now - @checking).to_i
+      delta = (Time.zone.now - @checking).to_i
       if delta < limit and @moder == nil
         @response[:errors] << t('errors.speed_limit.ip') + Verbose::seconds(limit - delta)
       end
@@ -389,7 +389,7 @@ class ThreadsController < ApplicationController
       @post.message = parse(@post.message)
       @post.defence_token_id = @token.id if @token
       @post.save
-      if @token and @token.updated_at < (Time.now - 1.day)
+      if @token and @token.updated_at < (Time.zone.now - 1.day)
         @token.updated_at = @post.created_at
         @token.save
       end
@@ -406,7 +406,7 @@ class ThreadsController < ApplicationController
         Rails.cache.write("json/#{@post.rid}/m", post_json)
         @response[:thread_rid] = @post.rid
         Rails.cache.delete_matched("views/#{@post.rid}")
-        now = Time.now
+        now = Time.zone.now
         start_of_hour = Time.new(now.year, now.month, now.day, now.hour)
         threads_per_hour = RThread.where(created_at: start_of_hour..now).count
         if threads_per_hour > @settings.defence[:speed_limits][:tau]
@@ -415,7 +415,7 @@ class ThreadsController < ApplicationController
         end
       else
         @thread.replies_count += 1
-        @thread.bump = Time.now unless @post.sage
+        @thread.bump = Time.zone.now unless @post.sage
         @thread.save
         Rails.cache.delete_matched("#{@thread.rid}")
         @thread.tags.each { |tag| Rails.cache.delete_matched("views/#{tag.to_s}") }
@@ -432,7 +432,7 @@ class ThreadsController < ApplicationController
       Rails.cache.delete('post_count')
       CometController.publish('/live', post_json)
       CometController.publish('/counters', get_counters)
-      delta = Time.now - @checking
+      delta = Time.zone.now - @checking
       @ip.post_captcha_needed = true if delta.to_i < limit
       @response[:status] = 'success'
       @response[:password] = @post.password

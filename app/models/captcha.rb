@@ -83,13 +83,13 @@ class Captcha < ActiveRecord::Base
 
   def self.get_key(defence)
     if (record = Captcha.where(defensive: defence).first(order: RANDOM))
-      time_passed = Time.now - record.created_at
+      time_passed = Time.zone.now - record.created_at
       if time_passed > 10.minutes and time_passed < 20.minutes
-        record.created_at = Time.now
+        record.created_at = Time.zone.now
         record.save
         return record.key
       elsif time_passed > 20.minutes
-        Captcha.where("created_at < ?", (Time.now - 20.minutes)).destroy_all
+        Captcha.where("created_at < ?", (Time.zone.now - 20.minutes)).destroy_all
       end
     end
     if defence == true
@@ -107,7 +107,7 @@ class Captcha < ActiveRecord::Base
 
   def self.validate(hash)
     if (captcha = Captcha.where(key: hash[:challenge]).first)
-      if (Time.now - captcha.created_at) < 20.minutes
+      if (Time.zone.now - captcha.created_at) < 20.minutes
         word = hash[:response].to_s.mb_chars.downcase.gsub("\n", '').gsub(' ', '')
         captcha.word = captcha.word.mb_chars.downcase.gsub("\n", '').gsub(' ', '')
         captcha.destroy

@@ -522,7 +522,7 @@ function initializeInterface() {
         }
     });
     cometClient = new Faye.Client('/comet', {
-        timeout: 110,
+        timeout: 100,
         retry: 3
     });
     cometClient.disable('websoket');

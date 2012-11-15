@@ -8,7 +8,7 @@ class ApplicationController < ActionController::Base
     @host = request.headers['HTTP_HOST']
     @host = request.headers['HTTP_SERVER_NAME'] if Rails.env.production?
     @response = Hash.new
-    @start_time = Time.now.usec
+    @start_time = Time.zone.now.usec
     utility = %w( mobile_off gc ).include?(params[:action])
     check_mobile unless utility
     if @mobile == false and utility == false
@@ -27,7 +27,7 @@ class ApplicationController < ActionController::Base
 
   after_filter do 
     if @ip
-      @ip.updated_at = Time.now if @ip.updated_at < (Time.now - 1.minute)
+      @ip.updated_at = Time.zone.now if @ip.updated_at < (Time.zone.now - 1.minute)
       @ip.save if @ip.changed?
     end
   end
@@ -70,7 +70,7 @@ class ApplicationController < ActionController::Base
 
   def gc
     return not_found unless request.local?
-    date = (Time.now - 3.days).at_midnight
+    date = (Time.zone.now - 3.days).at_midnight
     parameters = { ip_id: nil, defence_token_id: nil }
     RPost.where("created_at <= ?", date).update_all(parameters)
     RThread.where("created_at <= ?", date).update_all(parameters)
@@ -81,7 +81,7 @@ class ApplicationController < ActionController::Base
   protected
   def respond!
     if @mobile == false
-      @response[:time] = (Time.now.usec - @start_time).abs / 1000000.0
+      @response[:time] = (Time.zone.now.usec - @start_time).abs / 1000000.0
       return render(json: @response)
     else
       if @response.has_key?(:errors)
@@ -118,12 +118,12 @@ class ApplicationController < ActionController::Base
 
   def get_counters
     unless (posts = Rails.cache.read("post_count"))
-      posts = RPost.where(created_at: Time.now.at_midnight..Time.now).count
-      posts += RThread.where(created_at: Time.now.at_midnight..Time.now).count 
+      posts = RPost.where(created_at: Time.zone.now.at_midnight..Time.zone.now).count
+      posts += RThread.where(created_at: Time.zone.now.at_midnight..Time.zone.now).count 
       Rails.cache.write("post_count", posts)
     end
     return {
-      online: Ip.where(updated_at: (Time.now - 5.minutes)..Time.now).count,
+      online: Ip.where(updated_at: (Time.zone.now - 5.minutes)..Time.zone.now).count,
       posts: posts,
     }
   end
@@ -137,7 +137,7 @@ class ApplicationController < ActionController::Base
   def set_captcha(defensive=false)
     if (test = Captcha.where(key: session[:captcha]).first)
       if test.defensive == defensive
-        if (Time.now - test.created_at) < 20.minutes
+        if (Time.zone.now - test.created_at) < 20.minutes
           @response[:captcha] = session[:captcha]
           return
         end

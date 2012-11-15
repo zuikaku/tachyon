@@ -8,8 +8,8 @@ class Ip < ActiveRecord::Base
     unless (ip = Ip.where(address: address).first)
       ip = Ip.create({
         address:     address,
-        last_thread: Time.now - 10.minutes,
-        last_post:   Time.now - 10.minutes,
+        last_thread: Time.zone.now - 10.minutes,
+        last_post:   Time.zone.now - 10.minutes,
         post_captcha_needed: true, 
       })
     end
@@ -18,7 +18,7 @@ class Ip < ActiveRecord::Base
 
   def banned?
     if (ban = self.ban)
-      if Time.now > ban.expires
+      if Time.zone.now > ban.expires
         ban.destroy
         return false
       end
