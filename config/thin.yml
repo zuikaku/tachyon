@@ -11,7 +11,8 @@ max_persistent_conns: 512
 require: []
 daemonize: true
 threaded: true
-servers: 5
+no-epoll: true
+servers: 1
 
 
 
