@@ -189,7 +189,7 @@ class ThreadsController < ApplicationController
   def show_page(page_number)
     if @mobile == true
       cache = Rails.cache.read("views/#{params[:tag]}/#{page_number}")
-      return render(layout: 'application') if cache
+      return render(text: cache, layout: 'application') if cache
       get_tag
     end
     amount = params[:amount].to_i
