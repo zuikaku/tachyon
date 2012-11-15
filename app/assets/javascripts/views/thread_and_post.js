@@ -321,6 +321,54 @@ var ThreadView = Backbone.View.extend({
     },
 
     renderDateTime: function(datetime, checkEdit) {
+        datetime = new Date(datetime);
+        var today = new Date();
+        if (today.getDate() == datetime.getDate() && today.getMonth() == datetime.getMonth()
+            && today.getFullYear() == datetime.getFullYear()) {
+            if (checkEdit == true) {
+                if (datetime.getUTCHours() != today.getUTCHours()) {
+                    return false;
+                }
+                if (datetime.getMinutes() < (today.getMinutes() - 5)) {
+                    return false;
+                }
+                return true;
+            }
+            var t = "сегодня в ";
+        } else if (today.getDate()-1 == datetime.getDate() && today.getMonth() == datetime.getMonth()
+            && today.getFullYear() == datetime.getFullYear()) {
+            var t = "вчера в ";
+        } else {
+            var t = datetime.getDate() + " ";
+            var monthNames = [  "января",   "февраля",  "марта",
+                                "апреля",   "мая",      "июня",
+                                "июля",     "августа",  "сентября",
+                                "октября",  "ноября",   "декабря"  ];
+            t += monthNames[datetime.getMonth()] + " ";
+            t += datetime.getFullYear() + " г. в ";
+        }
+        var time = [datetime.getHours() + '',
+                    datetime.getMinutes() +'',
+                    datetime.getSeconds() + '']
+
+        for (var i = 0; i < time.length; i++) {
+            if (time[i].length == 1) {
+                time[i] = '0' + time[i];
+            }
+            t += time[i];
+            if (i != 2) {
+                t += ":";
+            }
+        }
+        if (checkEdit == true) {
+            return false;
+        }
+        return t;
+    },
+
+    olfuck: function() {
+
+
         datetime = datetime.split("T");
         var date = datetime[0].split('-');
         var today = new Date();
