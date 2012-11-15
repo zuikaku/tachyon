@@ -315,7 +315,7 @@ var ThreadView = Backbone.View.extend({
         }
         $('.play_button').css('opacity', 0.7);
         if (settings.get('mamka') == true) {
-            $(event.currentTarget).find('img').css('opacity', 0.2);   
+            $(event.currentTarget).find('img').css('opacity', 0.15);   
         }
         return false;
     },

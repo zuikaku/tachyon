@@ -398,7 +398,7 @@ var MainRouter = Backbone.Router.extend({
         $.ajax({
             url: '/utility/get_post',
             type: 'post',
-            async: false,
+            async: true,
             data: {rid: postRid},
             success: function(response) {
                 if (response.post != null) {

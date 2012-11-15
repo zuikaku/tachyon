@@ -254,7 +254,7 @@ var SettingsView = Backbone.View.extend({
 
     _mamka: function() {
         if (this.get('mamka') == true) {
-            $('.file_container img').css('opacity', 0.2);
+            $('.file_container img').css('opacity', 0.15);
         } else {
             $('.file_container img').css('opacity', 1);
         }
