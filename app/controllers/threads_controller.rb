@@ -194,7 +194,7 @@ class ThreadsController < ApplicationController
     end
     amount = params[:amount].to_i
     amount = 7 if @mobile
-    params[:rids] = Array.new unless params.has_key?(:rids)
+    params[:rids] = [1] unless params.has_key?(:rids)
     if amount < 5 or amount > 20 
       @response[:errors] = ['invalid request']
       @response[:status] = 'fail'
