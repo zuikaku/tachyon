@@ -57,9 +57,7 @@ var PreviewsView = Backbone.View.extend({
                 this.removePreview(leftSibling);
             }
         }
-        preview.timeout = setTimeout(function() {
-            previews.getPost(postRid, preview);
-        }, 200);
+        previews.getPost(postRid, preview);
         return false;
     },
 
@@ -136,8 +134,8 @@ var PreviewsView = Backbone.View.extend({
         var element = post.view.render(false, true).$el;
         post.preview = preview;
         preview.render(element);
-        preview.$el.css('opacity', 0)
-        preview.$el.animate({opacity: 1}, 400);
+        preview.$el.css('opacity', 0.4)
+        preview.$el.animate({opacity: 1}, 300);
         return false;
     },
 
@@ -165,7 +163,6 @@ var PreviewsView = Backbone.View.extend({
                     }
                 }
             } else {
-                clearTimeout(preview.timeout);
                 delete preview.data('view');
                 preview.remove();
             }
@@ -178,7 +175,6 @@ var PreviewsView = Backbone.View.extend({
 var Preview = Backbone.View.extend({
     tagName:    'div',
     className:  'preview',
-    timeout:    null,
 
     events: {
         "mouseenter": "over",

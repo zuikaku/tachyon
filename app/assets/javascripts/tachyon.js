@@ -387,17 +387,22 @@ var MainRouter = Backbone.Router.extend({
     },
 
     showError: function(response) {
+        if (response == undefined) {
+            var errors = ["Что-то пошло не так. Мы точно не знаем, что именно."];
+        } else {
+            if (response.errors != undefined) {
+                var errors = response.errors;
+            } else {
+                var errors = [response.responseText];
+            }
+        }
         controller = 'application'; action = 'error';
         bottomMenu.vanish();
         hideLoadingIndicator();
-        if (response.errors != undefined) {
-            response.errors.forEach(function(error) {
-                section.html('<h1>Ошибка:</h1>')
-                section.append('<br />' + error); 
-            });
-        } else {
-            section.html(response.responseText);
-        }
+        section.html('<h1>Ошибка:</h1>');
+        errors.forEach(function(error) {
+            section.append('<br />' + error); 
+        });
         router.adjustFooter();
         return this;
     },

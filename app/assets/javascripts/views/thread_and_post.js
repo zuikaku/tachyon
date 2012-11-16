@@ -653,7 +653,14 @@ var PostView = ThreadView.extend({
             }
             return this;
         }
-        var url = "/thread/" + this.model.get('thread_rid') + "#i" + this.model.get('rid');
+
+        var url = "/thread/"; 
+        if (this.model.get('thread_rid') != undefined) {
+            url += this.model.get('thread_rid');
+        } else {
+            url += this.model.get('rid');
+        }
+        url += "#i" + this.model.get('rid');
         var t = "<div class='post'>";
         t += "<div class='post_header'>";
             t += "<span><a href='" + url + "' class='post_link'>";

@@ -163,7 +163,7 @@ class ThreadsController < ApplicationController
     respond!
   end
 
-  ###############################################################
+  #====================================================================#
 
   private
   def build_thread(rid)
