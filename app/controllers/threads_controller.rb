@@ -231,7 +231,7 @@ class ThreadsController < ApplicationController
       @title = @tag.name
       if params.has_key?(:hidden_tags) or params.has_key?(:hidden_posts)
         conditions = ["r_threads.rid NOT IN (?) AND tags.id = ?", [1], @tag.id]
-        rids = RThread.order('bump DESC').joins(:tags).where(conditions).pluck('r_threads.rid')
+        rids = RThread.order('bump DESC').joins(:tags).where(conditions).limit(amount).offset(offset).pluck('r_threads.rid')
         thread_rids = Array.new
         rids.each { |rid| thread_rids << {'rid' => rid} }
         total = RThread.joins(:tags).where(conditions).count
