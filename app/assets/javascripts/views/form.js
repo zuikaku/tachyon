@@ -64,6 +64,9 @@ var FormView = Backbone.View.extend({
             if (captchaResponse.length < 3) {
                 errors.html('Введите капчу.');
                 this.toggleLoading('off');
+                setTimeout(function() {
+                    $('#captcha_word').focus();
+                }, 100);
                 return false;
             }
             data.append('captcha[challenge]', this.captchaChallenge);
@@ -107,7 +110,7 @@ var FormView = Backbone.View.extend({
                             router.navigate('/thread/' + response.thread_rid, {trigger: true});
                         }
                     } else if (response.post_rid != undefined) {
-                        waitToHighlight = response.post_rid;
+                        router.highlightPost(response.post_rid);
                     }
                     if (response.password != undefined) {
                         form.$el.find("#form_password").val(response.password);
@@ -155,7 +158,6 @@ var FormView = Backbone.View.extend({
                 clearTimeout(this.loadingTimeout);
                 this.loadingTimeout = undefined;
             }
-            form = this;
             setTimeout(function() {
                 form.$el.find('input,  textarea').removeAttr('disabled');
                 form.$el.find('#form_loading').remove();
@@ -163,14 +165,11 @@ var FormView = Backbone.View.extend({
             }, 100);
         } else if (trigger == 'on') {
             this.$el.find('input, textarea').attr('disabled', 'disabled');
-            var form = this;
             this.loadingTimeout = setTimeout(function() {
-                var loading = $("<img src='/assets/ui/loading.gif' id='form_loading' />");
-                loading.css('opacity', 0);
+                var loading = $("<img src='" + window.base64images.loading + "' id='form_loading' />");
                 form.$el.append(loading);
-                loading.css('opacity', 1);
                 form.$el.find('.divider').css('opacity', 0.4);
-            }, 500);
+            }, 600);
         }
         return this;
     },
@@ -306,12 +305,14 @@ var FormView = Backbone.View.extend({
     setCaptcha: function(key) {
         if (key == undefined) {
             this.$el.find('#captcha_field').css('display', 'none');    
-            this.$el.find('#captcha_image').attr('src', '/assets/ui/loading.gif');
+            this.$el.find('#captcha_image').attr('src', window.base64images.loading);
         } else {
-            this.$el.find('#captcha_image').attr('src', '/captcha/' + key + '.png');
             this.$el.find('#captcha_field').css('display', 'block');
+            this.$el.find('#captcha_image').attr('src', '/captcha/' + key + '.png');
         }
-        this.$el.find('#captcha_word').val('');
+        setTimeout(function() {
+            $('#captcha_word').val("").focus();
+        }, 100);
         this.captchaChallenge = key;
     },
 
@@ -358,7 +359,7 @@ var FormView = Backbone.View.extend({
             t += "</div>";
         t += "</div>";
         t += "<div class='divider' id='captcha_field'>";
-            t += "<img alt='captcha' id='captcha_image' src='/assets/ui/loading.gif' />";
+            t += "<img alt='captcha' id='captcha_image' src='"+ window.base64images.loading + "' />";
             t += "<input id='captcha_word' name='captcha[response]' placeholder='введите символы' type='text'>";
         t += "</div>";
         this.el.innerHTML = t;

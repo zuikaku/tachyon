@@ -8,17 +8,18 @@
 //= require scrollto
 
 //= require models
+//= require settings
+//= require views/images
 //= require views/bottom_menu
 //= require views/form
 //= require views/head
 //= require views/paginator
 //= require views/previews
-//= require views/settings
 //= require views/taglist
 //= require views/thread_and_post
 
 var settings, header, tagList, cometSubscription, previousPath,
-waitToHighlight, section, bottomMenu, loadingTimeout, threadsCollection,
+section, bottomMenu, loadingTimeout, threadsCollection,
 livePostsCollection, currentTag, mobileLink, mouseOverElement = null;
 var admin = false;
 
@@ -41,6 +42,9 @@ var MainRouter = Backbone.Router.extend({
 
     setTitle: function(title) {
         var set = NAME;
+        if (production == false) {
+            set += " dev ";
+        }
         if (title != undefined) {
             set += " - " + title;
         }
@@ -69,6 +73,14 @@ var MainRouter = Backbone.Router.extend({
         }  
         var href = "http://m." + document.location.host + document.location.pathname;
         mobileLink.attr('href', href);
+        if (threadsCollection != undefined) {
+            threadsCollection.terminate();
+            threadsCollection = undefined;
+        }
+        if (livePostsCollection != undefined) {
+            livePostsCollection.terminate();
+            livePostsCollection = undefined;
+        }
         return true;
     },
 
@@ -132,24 +144,47 @@ var MainRouter = Backbone.Router.extend({
                 window.scrollTo(0, 0);
                 livePostsCollection = new PostsCollection;
                 threadsCollection = new ThreadsCollection;
-                var handleMessage = function(message, update) {
-                    if (message.tags == undefined) {
-                        router.addPost(message, undefined, update);
-                    } else {
-                        var thread = router.buildThread(message, false);
-                        liveContainer.prepend(thread.container);
-                        threadsCollection.add(thread.model);
-                    }
-                }
                 response.messages.forEach(function(model) {
-                    handleMessage(model, false);
+                    router.addPostLive(model, false);
                 });
-                cometSubscription = cometClient.subscribe('/live', handleMessage);
+                cometSubscription = cometClient.subscribe('/live', router.addPostLive);
                 router.adjustFooter();
                 return false;
             },
             error: router.showError, 
         });
+        return false;
+    },
+
+    addPostLive: function(postJson, updating) {
+        if (updating == undefined) {
+            updating = true;
+        }
+        var container = $("#live_container");
+        if (postJson.tags != undefined) {
+            var thread = router.buildThread(postJson, false);
+            thread.container.addClass('live');
+            container.prepend(thread.container);
+            threadsCollection.add(thread.model);
+        } else {
+            var post = new PostModel(postJson);
+            post.view = new PostView({id: 'i' + post.get('rid')}, post);
+            livePostsCollection.add(post);
+            container.prepend(post.view.render(updating).el);
+            post.view.$el.addClass('live');
+        }
+        if (updating == true) {
+            var last = $(".live");
+            if (last.length < 15) {
+                return false;
+            }
+            last = last.last();
+            if (last.hasClass('post_container')) {
+                livePostsCollection.shift().terminate();
+            } else {
+                threadsCollection.shift().terminate();
+            }
+        }
         return false;
     },
 
@@ -302,8 +337,9 @@ var MainRouter = Backbone.Router.extend({
             livePostsCollection.add(post);
             var container = $("#live_container");
             container.prepend(post.view.render(update).el);
+            post.view.$el.addClass('live');
             if (update != false) {
-                container.find('.post_container').last().remove();
+                router.clearUpLive();
             }
         } else {
             var thread = threadsCollection.where({rid: post.get('thread_rid')})[0];
@@ -317,20 +353,25 @@ var MainRouter = Backbone.Router.extend({
                 post.view.scrollTo();
             }
         }
-        setTimeout(function() {
-            if (waitToHighlight != null) {
-                if (post.get('rid') == waitToHighlight) {
-                    if (settings.get('scroll_to_post') == true) {
-                        post.view.scrollTo().highlight();
-                        if (action != 'live') {
-                            document.location.hash = 'i' + waitToHighlight;
-                        }
-                    }
-                    waitToHighlight = null;
-                }
-            }
-        }, 100);
         router.adjustFooter();
+        return false;
+    },
+
+    highlightPost: function(rid) {
+        rid = parseInt(rid);
+        var test = $("#i" + rid);
+        if (test.length == 0) {
+            setTimeout(function() {
+                router.highlightPost(rid);
+            }, 100);
+        } else {
+            $(".highlighted").removeClass('highlighted');
+            test.find('.post').addClass('highlighted');
+            $.scrollTo(test, 200, {offset: {top: -200}});
+            if (action != 'live') {
+                document.location.hash = 'i' + rid;
+            }
+        }
         return false;
     },
 
@@ -370,7 +411,7 @@ var MainRouter = Backbone.Router.extend({
         return false;
     },
 
-    getPostLocal: function(postRid, clone) {
+    getPostLocal: function(postRid, clone, getCollection) {
         postRid = parseInt(postRid);
         var collections = [threadsCollection, previews.cache, livePostsCollection];
         threadsCollection.forEach(function(thread) {
@@ -383,6 +424,8 @@ var MainRouter = Backbone.Router.extend({
                     if (query[0].deleted != true) {
                         if (clone == true) {
                             return query[0].clone();
+                        } else if (getCollection == true) {
+                            return collections[i];
                         } else {
                             return query[0];
                         }
@@ -451,7 +494,9 @@ function hideLoadingIndicator() {
         clearTimeout(loadingTimeout);
         loadingTimeout = null;
     }
-    loadingIndicator.css('display', 'none');
+    setTimeout(function() {
+        loadingIndicator.css('display', 'none');
+    }, 100);
     return false;
 }
 
@@ -480,6 +525,7 @@ function initializeInterface() {
     settings.renderTags(tagList.renderTagTable(5, true));
     mainContainer = $('#main_container');
     loadingIndicator = $("#loading");
+    loadingIndicator.attr('src', window.base64images.loading);
     router = new MainRouter;
     form = new FormView;
     bottomMenu = new BottomMenuView;
@@ -529,21 +575,20 @@ function initializeInterface() {
     var countersSubscription = cometClient.subscribe('/counters', function(message) {
         header.setCounters(message);
         if (message.post != undefined) {
-            var post = router.getPostLocal(message.post.rid);
-            if (post != null) {
-                var view = post.view;
-                view.model = new PostModel(message.post);
-                view.render(true);
+            var collection = router.getPostLocal(message.post.rid, undefined, true);
+            if (collection != null) {
+                for (var i = 0; i < collection.length; i++) {
+                    if (collection.at(i).get('rid') == parseInt(message.post.rid)) {
+                        collection.at(i).set(message.post);
+                        collection.at(i).view.rerender();
+                        return false;
+                    }
+                }
             }
         } else if (message.delete != undefined) {
             var post = router.getPostLocal(message.delete);
             if (post != null) {
-                if (post.view != undefined) {
-                    post.view.$el.remove();
-                    delete post.view;
-                }
-                post.deleted = true;
-                delete post;
+                post.terminate();  
             }
         }
         return false;

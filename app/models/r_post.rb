@@ -65,7 +65,7 @@ class RPost < ActiveRecord::Base
       thread_title = @thread.title
       thread_title = @thread.message if @thread.title.empty?
     end
-    if thread_title != nil 
+    if thread_title != nil and thread_title != false 
       thread_title.gsub!(/<.+?>/, ' ')
       thread_title.gsub!('  ', ' ')
       thread_title.strip!

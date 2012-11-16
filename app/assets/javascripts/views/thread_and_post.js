@@ -4,6 +4,7 @@ var ThreadView = Backbone.View.extend({
     tagsHidden:  [],
     ridHidden:   false,
     hidden:      false,
+    attributes:  {},
 
     events:     {
         "click .post_header .post_link":    "callReplyForm",
@@ -32,6 +33,12 @@ var ThreadView = Backbone.View.extend({
     initialize: function(attributes, model, full) {
         this.model = model;
         this.full = full;
+        this.attributes.id = "i" + model.get('rid');
+        return this;
+    },
+
+    rerender: function() {
+        this.render();
         return this;
     },
 
@@ -220,12 +227,12 @@ var ThreadView = Backbone.View.extend({
         var link = $(event.currentTarget);
         if (settings.isFavorite(rid) == false) {
             if (settings.toggleFavorite(rid, 'add') == true) {
-                link.find('img').attr('src', '/assets/ui/star_full.png');
+                link.find('img').attr('src', window.base64images.star_full);
                 link.attr('title', 'Убрать из избранного');
             }
         } else {
             settings.toggleFavorite(rid, 'remove');
-            link.find('img').attr('src', '/assets/ui/star_empty.png');
+            link.find('img').attr('src', window.base64images.star_empty);
             link.attr('title', 'Добавить в избранное');
         }
         return false;
@@ -362,55 +369,6 @@ var ThreadView = Backbone.View.extend({
                 t += ":";
             }
         }
-        if (checkEdit == true) {
-            return false;
-        }
-        return t;
-    },
-
-    olfuck: function() {
-
-
-        datetime = datetime.split("T");
-        var date = datetime[0].split('-');
-        var today = new Date();
-        if (date[2][0] == '0') {
-            date[2] = date[2][1];
-        }
-        if (date[1][0] == '0') {
-            date[1] = date[1][1];
-        }
-        date[0] = parseInt(date[0]);
-        date[1] = parseInt(date[1]);
-        date[2] = parseInt(date[2]);
-        if (today.getDate() == date[2] && today.getMonth() == date[1]-1 
-            && today.getFullYear() == date[0]) {
-            if (checkEdit == true) {
-                var postTime = new Date(datetime);
-                var nowTime = new Date;
-                var editable = true;
-                if (postTime.getUTCHours() != nowTime.getUTCHours()) {
-                    editable = false;
-                } 
-                if (postTime.getMinutes() < (nowTime.getMinutes() - 5)) {
-                    editable = false;
-                }
-                return editable;
-            }
-            var t = 'сегодня в ';
-        } else if (today.getDate()-1 == date[2] && today.getMonth() == date[1]-1
-            && today.getFullYear() == date[0]) {
-            var t = 'вчера в ';
-        } else {
-            var t = date[2] + ' ';
-            var monthNames = [  "января",   "февраля",  "марта",
-                                "апреля",   "мая",      "июня",
-                                "июля",     "августа",  "сентября",
-                                "октября",  "ноября",   "декабря"  ]
-            t += monthNames[date[1]-1] + ' ';
-            t += date[0] + ' г. в ';
-        }
-        t += datetime[1].substring(0, 8);
         if (checkEdit == true) {
             return false;
         }
@@ -571,7 +529,7 @@ var ThreadView = Backbone.View.extend({
         t += this.renderTagList(this.model.get('tags'));
         if (this.tagsHidden.length == 0) {
             t += "<a href='#' title='Показать' class='hide_button'>";
-                t += "<img src='/assets/ui/unhide.png' />";
+                t += "<img src='" + window.base64images.unhide + "' />";
             t += "</a>";
         } else {
             t += " (вашими настройками скрыт";
@@ -623,17 +581,17 @@ var ThreadView = Backbone.View.extend({
             }
             t += "<a href='#' class='fav_button' ";
                 if (settings.isFavorite(this.model.get('rid')) == true)  {
-                    var star = "full";
+                    var star = window.base64images.star_full;
                     t += "title='Убрать из избранного'>";
                 } else {
-                    var star = "empty";
+                    var star = window.base64images.star_empty;
                     t += "title='Добавить в избранное'>";
                 }
-                t += "<img src='/assets/ui/star_" + star + ".png' />";
+                t += "<img src='" + star + "' />";
             t += "</a>";
             if (action != 'show') {
                 t += "<a href='#' title='Скрыть' class='hide_button'>";
-                    t += "<img src='/assets/ui/hide.png' />";
+                    t += "<img src='" + window.base64images.hide + "' />";
                 t += "</a>";
             }
             t += "<span class='thread_info'>";
@@ -669,6 +627,7 @@ var PostView = ThreadView.extend({
 
     initialize: function(attributes, model) {
         this.model = model;
+        this.attributes.id = "i" + model.get('rid');
         this.$previews = $('#previews').first();
         return this;
     },
@@ -681,14 +640,18 @@ var PostView = ThreadView.extend({
 
     renderHidden: function() {
         var t = "<div class='post_hidden'>скрытый пост" +
-        "<img src='/assets/ui/unhide.png' class='hide_button' /> </div>";
+        "<img src='" + window.base64images.unhide + "' class='hide_button' /> </div>";
         return t;
     },
 
     render: function(updateReferences, isPreview) {
         this.ridHidden = settings.isHidden(this.model.get('rid'));
         if (this.ridHidden == true && isPreview != true) {
-            this.el.innerHTML = this.renderHidden();
+            if (settings.get('strict_hiding') == true) {
+                this.el.innerHTML = "";
+            } else {
+                this.el.innerHTML = this.renderHidden();
+            }
             return this;
         }
         var url = "/thread/" + this.model.get('thread_rid') + "#i" + this.model.get('rid');
@@ -704,7 +667,7 @@ var PostView = ThreadView.extend({
             if (this.model.get('file') != null) {
                 t += this.renderFileInfo(this.model.get('file'));  
             }
-            if (action == 'live' && this.model.get('thread_title') != undefined) {
+            if (action == 'live' && this.model.get('thread_title') != undefined && isPreview != true) {
                 t += "<a href='/thread/" + this.model.get('thread_rid') + "' class='context_link'>" + 
                 this.model.get('thread_title') + "</a>";
             }

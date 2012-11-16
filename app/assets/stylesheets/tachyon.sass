@@ -41,7 +41,7 @@ header
   min-width: 830px
   background: #222
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.50), 0 -1px 0 rgba(0, 0, 0, 0.1) inset
-  padding: 5px 5px 3px 20px
+  padding: 5px 0px 3px 0px
   display: table
   width: 100%
   margin: 0 auto
@@ -54,6 +54,7 @@ header
     font-size: 23px
     font-weight: normal !important
     float: left
+    margin-left: 20px
   #posting_info 
     cursor: default
     color: #999
@@ -75,7 +76,7 @@ header
   menu
     display: inline-block
     float: right
-    margin-right: 40px
+    padding-right: 15px
     li
       display: inline
       margin-left: 30px
@@ -361,7 +362,7 @@ footer
   position: relative
   float: left
   margin-right: 7px
-  img, .video_preview, .video
+  img, .video_preview, .video, .non_pic_url img
     position: relative
     margin: 0
     padding: 0
@@ -430,7 +431,6 @@ footer
   min-width: 400px
   background: #e5e5e5
   border: 1px solid #c9c9c9
-  // box-shadow: 0 1px 3px #d7d7d7
   &.highlighted 
     background: #ddd
     box-shadow: none
@@ -440,13 +440,13 @@ footer
   .post_header
     margin-bottom: 5px
     font-size: 12px
-    min-height: 13px
+    min-height: 16px
     padding-bottom: 0
     color: #666
     background: none
     .context_link
       float: right
-      color: #888
+      color: #aaa
       font-style: italic
       &:hover
         color: #06f
@@ -483,8 +483,11 @@ footer
   z-index: 20
   left: 48%
 
-#form_loading
+img#form_loading
   position: absolute
+  padding: 5px
+  background: #000
+  border: 2px solid #111
   left: 45%
 
 #paginator
