@@ -158,11 +158,9 @@ var FormView = Backbone.View.extend({
                 clearTimeout(this.loadingTimeout);
                 this.loadingTimeout = undefined;
             }
-            setTimeout(function() {
-                form.$el.find('input,  textarea').removeAttr('disabled');
-                form.$el.find('#form_loading').remove();
-                form.$el.find('.divider').css('opacity', 1);
-            }, 100);
+            form.$el.find('input,  textarea').removeAttr('disabled');
+            form.$el.find('#form_loading').remove();
+            form.$el.find('.divider').css('opacity', 1);
         } else if (trigger == 'on') {
             this.$el.find('input, textarea').attr('disabled', 'disabled');
             this.loadingTimeout = setTimeout(function() {

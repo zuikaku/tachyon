@@ -122,6 +122,7 @@ var ThreadView = Backbone.View.extend({
 
     showManageMenu: function(event) {
         mouseOverElement = null;
+        $(".manage_menu").remove();
         var link = $(event.currentTarget);
         var editable = this.renderDateTime(this.model.get('created_at'), true);
         var t = "<div class='manage_menu'>";
@@ -332,17 +333,18 @@ var ThreadView = Backbone.View.extend({
     renderDateTime: function(datetime, checkEdit) {
         datetime = new Date(datetime);
         var today = new Date();
+        if (checkEdit == true) {
+            if ((today.getDate() == datetime.getDate() || today.getDate() == datetime.getDate()+1) 
+                && today.getMonth() == datetime.getMonth() && today.getFullYear() == datetime.getFullYear()) {
+                if (today.getMinutes() > datetime.getMinutes()-1 && today.getMinutes() < (datetime.getMinutes() + 5)) {
+                    return true;
+                }
+                return false;
+            }
+            return false;
+        }
         if (today.getDate() == datetime.getDate() && today.getMonth() == datetime.getMonth()
             && today.getFullYear() == datetime.getFullYear()) {
-            if (checkEdit == true) {
-                if (datetime.getUTCHours() != today.getUTCHours()) {
-                    return false;
-                }
-                if (datetime.getMinutes() < (today.getMinutes() - 5)) {
-                    return false;
-                }
-                return true;
-            }
             var t = "сегодня в ";
         } else if (today.getDate()-1 == datetime.getDate() && today.getMonth() == datetime.getMonth()
             && today.getFullYear() == datetime.getFullYear()) {
@@ -368,9 +370,6 @@ var ThreadView = Backbone.View.extend({
             if (i != 2) {
                 t += ":";
             }
-        }
-        if (checkEdit == true) {
-            return false;
         }
         return t;
     },

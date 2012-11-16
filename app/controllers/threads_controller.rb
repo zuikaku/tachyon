@@ -141,7 +141,7 @@ class ThreadsController < ApplicationController
   end
 
   def live 
-    return redirect_to(:root, only_path: true) if @mobile == true
+    return redirect_to("http://#{@host}/~/") if @mobile == true
     @response[:messages] = Array.new
     threads = RThread.order('created_at DESC').limit(15).to_a
     posts = RPost.order('created_at DESC').limit(15).to_a
@@ -220,7 +220,7 @@ class ThreadsController < ApplicationController
         total = RThread.count
       end
     elsif @tag == 'favorites'
-      return redirect_to(:root) if @mobile == true 
+      return redirect_to("http://#{@host}/~/") if @mobile == true 
       rids = ERB::Util.html_escape(params[:rids].join(",")).gsub(";", "").gsub('`', '')
       thread_rids = RThread.connection.select_all("SELECT r_threads.rid FROM r_threads
         WHERE r_threads.rid IN (#{rids})
@@ -352,11 +352,13 @@ class ThreadsController < ApplicationController
           end
         end
       end
-      if @ip.post_captcha_needed or @settings.defence[:dyson] != nil
-        validate_captcha
-        @response[:errors] << t('errors.captcha.old') if @captcha == nil
-        @response[:errors] << t('errors.captcha.invalid') if @captcha == false
-        @ip.post_captcha_needed = false if @captcha == true
+      if session[:moder_id] == nil
+        if @ip.post_captcha_needed or @settings.defence[:dyson] != nil
+          validate_captcha
+          @response[:errors] << t('errors.captcha.old') if @captcha == nil
+          @response[:errors] << t('errors.captcha.invalid') if @captcha == false
+          @ip.post_captcha_needed = false if @captcha == true
+        end
       end
       if processing_thread?
         @checking = @ip.last_thread
@@ -440,9 +442,8 @@ class ThreadsController < ApplicationController
       @ip.update_last(@post)
     end
     @response[:status] = 'fail' unless @response[:errors].empty?
-    @ip.post_captcha_needed = true unless @settings.defence[:dyson] == nil
-    @ip.post_captcha_needed = false if @moder != nil
-    set_captcha if @ip.post_captcha_needed and not @tau
+    @ip.post_captcha_needed = true if @settings.defence[:dyson] != nil
+    set_captcha if @ip.post_captcha_needed and session[:moder_id] == nil
     logger.info @response.inspect
     respond!
   end

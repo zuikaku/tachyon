@@ -19,7 +19,7 @@ class ApplicationController < ActionController::Base
           return redirect_to("http://#{@host}/#{request.headers['QUERY_STRING'].split('=')[1]}/")
         end
         get_ip
-        set_captcha if @ip.post_captcha_needed
+        set_captcha if @ip.post_captcha_needed and session[:moder_id] == nil
         @counters = get_counters
       end
     end
@@ -48,7 +48,7 @@ class ApplicationController < ActionController::Base
     @response[:tags] = Tag.all.to_json
     @response[:counters] = get_counters
     @response[:admin] = true if session[:moder_id] != nil
-    set_captcha if @ip.post_captcha_needed
+    set_captcha if @ip.post_captcha_needed and session[:moder_id] == nil
     check_defence_token
     if @token == nil
       settings = SettingsRecord.get
