@@ -394,6 +394,7 @@ class ThreadsController < ApplicationController
         end
       end
       if processing_thread?
+        @tags.each { |tag| @post.tags << tag }
         limit = @settings.defence[:speed_limits][:captcha][:thread]
         post_json = @post.jsonify([@file])
         Rails.cache.write("json/#{@post.rid}/f", post_json)
