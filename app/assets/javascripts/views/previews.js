@@ -115,11 +115,7 @@ var PreviewsView = Backbone.View.extend({
                         previews.cache.add(remotePost);
                     }
                     if (previews.cache.size() > 10)  {
-                        var deleting = previews.cache.last();
-                        previews.cache.remove(deleting);
-                        delete deleting.preview;
-                        delete deleting.view;
-                        delete deleting;
+                        previews.cache.shift().terminate();
                     }
                     previews.showPost(remotePost, preview);
                 }
