@@ -2,7 +2,7 @@ class AdminController < ApplicationController
   before_filter do 
     unless params[:action] == 'login' 
       @moder = Moder.find(session[:moder_id])
-      return not_found unless @moder
+      return render(text: 'fuck you') unless @moder
     end
   end
 
@@ -17,9 +17,49 @@ class AdminController < ApplicationController
     respond!
   end
 
+  def post_info
+    @post = RPost.get_by_rid(params[:rid].to_i)
+    @post = RThread.get_by_Rid(params[:rid].to_i) unless @post
+    if @post == nil
+      return render(text: 'Not found')
+    end
+    render(layout: nil)
+  end
+
   def get_settings
     @defence = SettingsRecord.get.defence
     render(layout: nil)
+  end
+
+  def hexenhammer
+    @post = RPost.get_by_rid(params[:rid].to_i)
+    @post = RThread.get_by_rid(params[:rid].to_i) unless @post
+    @response[:errors] = Array.new
+    @response[:status] = 'fail'
+    @response[:errors] << "not found" if @post == nil
+    @response[:errors] << t('errors.admin.reason') if params[:reason].empty?
+    if @response[:errors].empty?
+      if params[:ban] == 'true'
+        days = params[:ban_days].to_i
+        ban = Ban.create( reason:   params[:reason],
+                          ip_id:    @post.ip_id,
+                          moder_id: @moder.id,
+                          level:    1,
+                          expires:  Time.zone.now + days.days, )
+        @post.defence_token.destroy if @post.defence_token
+        @post.defence_token_id = nil
+      end
+      if params[:delete] == 'true'
+        counters = get_counters
+        counters[:delete] = @post.rid
+        @post.defence_token.destroy if @post.defence_token
+        @post.destroy
+        clear_cache(@post)
+        CometController.publish('/counters', counters)
+      end
+    end
+    @response[:status] = 'success' if @response[:errors].empty?
+    respond!
   end
 
   def set_settings

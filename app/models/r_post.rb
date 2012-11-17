@@ -25,6 +25,7 @@ class RPost < ActiveRecord::Base
   belongs_to  :r_thread
   belongs_to  :r_file
   belongs_to  :ip
+  belongs_to  :defence_token
 
   serialize :replies_rids, Array
   validates_with TachyonMessageValidator

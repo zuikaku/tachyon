@@ -155,7 +155,7 @@ footer
   border: 1px solid #777
   //box-shadow: 0 0 4px rgba(0, 0, 0, 0.50), 0 -1px 0 rgba(0, 0, 0, 0.1) inset
 
-#qr_form, #settings
+#qr_form, #settings, .manage_menu.admin
   input, textarea
     padding: 3px
     font-family: "Trebuchet MS", Trebuchet, sans-serif
@@ -281,8 +281,8 @@ footer
       color: #003300      
 
 .admin_proofmark
-  color: red
-  font-weight: bold
+  color: #777
+  font-family: Terminus, Consolas, monospace
   font-style: italic
 
 .thread_container, #thread_container
@@ -749,6 +749,19 @@ img#form_loading
         cursor: pointer
         color: white
         text-decoration: underline
+    &.admin
+      display: table
+      padding: 10px
+      p, table
+        font-size: 12px
+        color: #bbb
+      table
+        font-family: Terminus, Consolas, monospace
+      p 
+        margin: 0
+        display: none
+      input
+        max-width: 20px
 
 .post, .thread 
   textarea
@@ -756,6 +769,7 @@ img#form_loading
     font-size: 14px
     background: none
     color: inherit
+    min-height: 40px
 
 .edit_submit 
   display: block
@@ -765,3 +779,13 @@ img#form_loading
   font-size: 12px
   font-style: italic
   color: #666
+
+#admin_submit, #admin_reason
+  max-width: 100px
+  border: 1px solid #777
+
+#admin_submit
+  cursor: pointer
+  font-size: 12px
+  font-weight: bold
+  border: none

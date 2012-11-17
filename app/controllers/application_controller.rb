@@ -95,6 +95,15 @@ class ApplicationController < ActionController::Base
     end
   end
 
+  def clear_cache(post)
+    @thread = post.r_thread if post.kind_of?(RPost) and @thread == nil
+    @thread = post if post.kind_of?(RThread)
+    @thread.tags.each { |tag| Rails.cache.delete_matched("views/#{tag.to_s}") }
+    Rails.cache.delete_matched("#{@thread.rid}")
+    Rails.cache.delete_matched("views/~")
+    Rails.cache.delete('post_count')
+  end
+
   def check_mobile
     @mobile = (@host[0..1] == 'm.')
     if (request.user_agent.to_s.downcase =~ MOBILE_USER_AGENTS) != nil

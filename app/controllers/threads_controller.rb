@@ -88,14 +88,11 @@ class ThreadsController < ApplicationController
         @thread = @post if @post.kind_of?(RThread)
         @post.message = parse(params[:text])
         @post.save
-        @response[:post] = @post.jsonify
-        @response[:status] = 'success'
-        @thread.tags.each { |tag| Rails.cache.delete_matched("views/#{tag.to_s}") }
-        Rails.cache.delete_matched("#{@thread.rid}")
-        Rails.cache.delete_matched("views/~")
+        clear_cache(@post)
         counters = get_counters
-        counters[:post] = @response[:post]
+        counters[:post] = @post.jsonify
         CometController.publish('/counters', counters)
+        @response[:status] = 'success'
       end
     else
       @response[:errors] << 'post not found'
@@ -119,12 +116,7 @@ class ThreadsController < ApplicationController
         else
           post.destroy
         end
-        thread = post.r_thread if post.kind_of?(RPost)
-        thread = post if post.kind_of?(RThread)
-        thread.tags.each { |tag| Rails.cache.delete_matched("views/#{tag.to_s}") }
-        Rails.cache.delete_matched("#{thread.rid}")
-        Rails.cache.delete_matched("views/~")
-        Rails.cache.delete('post_count')
+        clear_cache(post)
         counters = get_counters
         if params[:file] == 'true'
           counters[:post] = post.jsonify
@@ -320,6 +312,9 @@ class ThreadsController < ApplicationController
 
     def validate_permission
       check_defence_token
+      if @token == nil and @settings.defence[:dyson] != :omicron
+        set_defence_token
+      end
       case @settings.defence[:dyson]
       when :tau
         if processing_thread? and @moder == nil
@@ -338,8 +333,7 @@ class ThreadsController < ApplicationController
       end
       return false unless @response[:errors].empty?
       if @ip.banned?
-        @response[:errors] << t('errors.banned')
-        @response[:ban] = @ip.ban.jsonify
+        @response[:errors] << t('errors.banned') + "&laquo;#{@ip.ban.reason}&raquo;."
         return false
       end
       if @settings.defence[:spamtxt][:enabled] == true
@@ -392,14 +386,11 @@ class ThreadsController < ApplicationController
       @post.message = parse(@post.message)
       @post.defence_token_id = @token.id if @token
       @post.save
-      if @token and @token.updated_at < (Time.zone.now - 1.day)
-        @token.updated_at = @post.created_at
-        @token.save
-      end
-      if processing_thread?
-        @tags.each do |tag| 
-          @post.tags << tag 
-          Rails.cache.delete_matched("views/#{tag.to_s}")
+      clear_cache(@post)
+      if @token 
+        if @token.updated_at < (Time.zone.now - 1.day)
+          @token.updated_at = @post.created_at
+          @token.save
         end
       end
       if processing_thread?
@@ -408,7 +399,6 @@ class ThreadsController < ApplicationController
         Rails.cache.write("json/#{@post.rid}/f", post_json)
         Rails.cache.write("json/#{@post.rid}/m", post_json)
         @response[:thread_rid] = @post.rid
-        Rails.cache.delete_matched("views/#{@post.rid}")
         now = Time.zone.now
         start_of_hour = Time.new(now.year, now.month, now.day, now.hour)
         threads_per_hour = RThread.where(created_at: start_of_hour..now).count
@@ -418,10 +408,10 @@ class ThreadsController < ApplicationController
         end
       else
         @thread.replies_count += 1
-        @thread.bump = Time.zone.now unless @post.sage
+        if @settings.bump_limit < @thread.replies_count
+          @thread.bump = Time.zone.now if @post.sage == false 
+        end
         @thread.save
-        Rails.cache.delete_matched("#{@thread.rid}")
-        @thread.tags.each { |tag| Rails.cache.delete_matched("views/#{tag.to_s}") }
         limit = @settings.defence[:speed_limits][:captcha][:post]
         post_json = @post.jsonify([@file], @thread.rid, true)
         CometController.publish("/thread/#{@thread.rid}", post_json)
@@ -431,8 +421,6 @@ class ThreadsController < ApplicationController
           @response[:post_rid] = @post.rid
         end
       end
-      Rails.cache.delete_matched("views/~")
-      Rails.cache.delete('post_count')
       CometController.publish('/live', post_json)
       CometController.publish('/counters', get_counters)
       delta = Time.zone.now - @checking

@@ -17,6 +17,8 @@ var ThreadView = Backbone.View.extend({
         "click .manage_button":             "showManageMenu",
         "click .edit_button":               "editShow",
         "click .edit_submit":               "editSubmit",
+        "click .manage_menu.admin div":     "showAdminFeatures",
+        "click #admin_submit":              "submitAdmin",
         "click .delete_button, .delete_file_button": "submitDeletion",
         "mouseenter":                       "showManageButton",
         "mouseleave":                       "hideManageButton",
@@ -40,6 +42,40 @@ var ThreadView = Backbone.View.extend({
     rerender: function() {
         this.render();
         return this;
+    },
+
+    showAdminFeatures: function(event) {
+        this.$el.find('p').css('display', 'block');
+        $(event.currentTarget).remove();
+    },
+
+    submitAdmin: function() {
+        data = {rid: this.model.get('rid'), reason: $("admin_reason").val()};
+        if ($("#admin_reason").val().length == 0) {
+            alert('Укажите причину.');
+            return false;
+        } else {
+            data.reason = $("#admin_reason").val();
+        }
+        if (this.$el.find("input[name='delete']").attr('checked') == 'checked') {
+            data.delete = 'true';
+        } 
+        if (this.$el.find("input[name='ban']").attr('checked') == 'checked') {
+            data.ban = 'true';
+            data.ban_days = this.$el.find("input[name='ban_days']").val();
+        }
+        $.ajax({
+            url:    '/admin/hexenhammer',
+            type:   'post',
+            data:   data,
+            success: function() {
+                if (data.ban == 'true') {
+                    alert("OK!");
+                }
+            }, 
+            error: router.showError,
+        });
+        return false;
     },
 
     submitDeletion: function(event) {
@@ -126,17 +162,34 @@ var ThreadView = Backbone.View.extend({
         var link = $(event.currentTarget);
         var editable = this.renderDateTime(this.model.get('created_at'), true);
         var t = "<div class='manage_menu'>";
-        if (editable == true) {
-            t += "<div class='edit_button'>редактировать</div>" +
-            "<div class='delete_button'>удалить</div>";
-            if (this.className != 'thread' && this.model.get('file') != undefined) {
-                t += "<div class='delete_file_button'>удалить файл</div>";
+        if (link.hasClass('admin') == true && admin == true) {
+            t += "<img src='" + window.base64images.loading + "' /></div>";
+            link.after(t);
+            $.ajax({
+                url:    '/admin/post_info',
+                data:   {rid: this.model.get('rid')},
+                type:   'post',
+                success: function(response) {
+                    $(".manage_menu").html(response).addClass('admin');
+                }
+            });
+            return false;
+        } else {
+            if (editable == true) {
+                t += "<div class='edit_button'>редактировать</div>" +
+                "<div class='delete_button'>удалить</div>";
+                if (this.className != 'thread' && this.model.get('file') != undefined) {
+                    t += "<div class='delete_file_button'>удалить файл</div>";
+                }
+            }
+            if (this.$el.hasClass('post_container')) {
+                t += "<div class='hide_button'>скрыть</div>";
             }
         }
-        if (this.$el.hasClass('post_container')) {
-            t += "<div class='hide_button'>скрыть</div>";
-        }
         t += "</div>";
+        if (editable == false && link.hasClass('admin') == false && this.className == 'thread') {
+            return false;
+        }
         link.after(t);
         return false;
     },
@@ -154,7 +207,7 @@ var ThreadView = Backbone.View.extend({
     showManageButton: function() {
         if (this.isPreview != true) {
             var editable = this.renderDateTime(this.model.get('created_at'), true);
-            if (this.className == 'thread' && editable == false) {
+            if (this.className == 'thread' && editable == false && admin == false) {
                 return false;
             }
             this.$el.find(".manage_container").css('display', 'inline');
@@ -599,7 +652,11 @@ var ThreadView = Backbone.View.extend({
             t += "<span class='thread_info'>";
                 t += this.renderDateTime(this.model.get('created_at')) + ', ';
                 t += this.renderTagList(this.model.get('tags'));
-                t += "<div class='manage_container'><span class='manage_button'>×</span></div>";
+                t += "<div class='manage_container'><span class='manage_button'>×</span>";
+                if (admin == true) {
+                    t += "<span class='manage_button admin'>!</span>";
+                }
+                t += "</div>";
             t += "</span>";
             t += "<blockquote>" + this.model.get('message') + "</blockquote>";
             if (this.model.get('replies_rids').length > 0) {
@@ -680,7 +737,11 @@ var PostView = ThreadView.extend({
                 t += "<a href='/thread/" + this.model.get('thread_rid') + "' class='context_link'>" + 
                 this.model.get('thread_title') + "</a>";
             }
-            t += "<div class='manage_container'><span class='manage_button'>×</span></div>";
+            t += "<div class='manage_container'><span class='manage_button'>×</span>";
+            if (admin == true) {
+                t += "<span class='manage_button admin'>!</span>";
+            }
+            t += "</div>";
         t += "</div>";
         t += "<div class='post_body'>";
             if (this.model.get('file') != null) {

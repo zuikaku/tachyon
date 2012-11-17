@@ -23,6 +23,8 @@ Tachyon::Application.routes.draw do
     match 'login'             => 'admin#login',                                             via: 'post'
     match 'settings/get'      => 'admin#get_settings',                                      via: 'post'
     match 'settings/set'      => 'admin#set_settings',                                      via: 'post'
+    match 'post_info'         => 'admin#post_info',                                         via: 'post'
+    match 'hexenhammer'       => 'admin#hexenhammer',                                       via: 'post'
   end
 
   match ':rid.html'           => 'threads#show_old',        constraints: { rid: /\d+/ }

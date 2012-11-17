@@ -329,35 +329,16 @@ var MainRouter = Backbone.Router.extend({
 
     addPost: function(post_json, scroll, update) {
         var post = new PostModel(post_json);
-        if (action == 'live') {
-            if (update == undefined) {
-                update = true;
-            }
-            post.view = new PostView({id: 'i' + post.get('rid')}, post);
-            livePostsCollection.add(post);
-            var container = $("#live_container");
-            container.prepend(post.view.render(update).el);
-            post.view.$el.addClass('live');
-            if (update != false) {
-                router.clearUpLive();
-            }
-        } else {
-            var thread = threadsCollection.where({rid: post.get('thread_rid')})[0];
-            thread.posts.add(post);
-            post.view = new PostView({id: 'i' + post.get('rid')}, post);
-            thread.view.$el.parent().append(post.view.render(true).el);
-        }
-        if (scroll == true) {
-            post.view.highlight();
-            if (settings.get('scroll_to_post') == true) {
-                post.view.scrollTo();
-            }
-        }
+        var thread = threadsCollection.where({rid: post.get('thread_rid')})[0];
+        thread.posts.add(post);
+        post.view = new PostView({id: 'i' + post.get('rid')}, post);
+        thread.view.$el.parent().append(post.view.render(true).el);
+        router.highlightPost(post.get('rid'), settings.get('scroll_to_post'));
         router.adjustFooter();
         return false;
     },
 
-    highlightPost: function(rid) {
+    highlightPost: function(rid, scroll) {
         rid = parseInt(rid);
         var test = $("#i" + rid);
         if (test.length == 0) {
@@ -367,7 +348,9 @@ var MainRouter = Backbone.Router.extend({
         } else {
             $(".highlighted").removeClass('highlighted');
             test.find('.post').addClass('highlighted');
-            $.scrollTo(test, 200, {offset: {top: -200}});
+            if (scroll != false) {
+                $.scrollTo(test, 150, {offset: {top: -200}, easing: 'linear'});
+            }
             if (action != 'live') {
                 document.location.hash = 'i' + rid;
             }
@@ -489,6 +472,7 @@ function setMouseOver() {
 }
 
 function showLoadingIndicator() {
+    router.setTitle('...');
     loadingTimeout = setTimeout(function () {
         loadingIndicator.css('display', 'block');
     }, 450);
@@ -517,7 +501,7 @@ function checkHash() {
             rid: parseInt(document.location.hash.substring(2)),
         })[0];
         if (post != undefined) {
-            post.view.highlight().scrollTo();
+            router.highlightPost(post.get('rid'));
         }
     }
 }
@@ -593,6 +577,7 @@ function initializeInterface() {
         } else if (message.delete != undefined) {
             var post = router.getPostLocal(message.delete);
             if (post != null) {
+                post.deleted = true;
                 post.terminate();  
             }
         }
