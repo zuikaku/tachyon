@@ -464,6 +464,9 @@ var ThreadView = Backbone.View.extend({
             } else if (file.extension == 'video') {
                 t += "width=" + 320;
                 t += " height=" + 240;
+            } else {
+                t += "width=" + file.columns;
+                t += " height=" + file.rows;
             }
             t += "/>";
         t += "</a>";
