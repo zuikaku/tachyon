@@ -408,7 +408,7 @@ class ThreadsController < ApplicationController
         end
       else
         @thread.replies_count += 1
-        if @settings.bump_limit < @thread.replies_count
+        if @settings.bump_limit > @thread.replies_count
           @thread.bump = Time.zone.now if @post.sage == false 
         end
         @thread.save
