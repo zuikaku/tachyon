@@ -218,7 +218,7 @@ var FormView = Backbone.View.extend({
             this.toggleTagsOrSage('sage');
             var menuValue = 'ответить';
         }
-        if (bottomMenu.$button.html() != 'закрыть форму') {
+        if ($("#bottom_menu #qr_button").html() != 'закрыть форму') {
             bottomMenu.setButtonValue(menuValue);
         }
         return this;

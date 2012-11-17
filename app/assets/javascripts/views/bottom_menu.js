@@ -22,10 +22,11 @@ var BottomMenuView = Backbone.View.extend({
     },
 
     callReplyForm: function() {
-        if (this.$button.html() == 'закрыть форму') {
+        var button = this.$el.find("#qr_button");
+        if (button.html() == 'закрыть форму') {
             form.hide();
         } else {
-            if (this.$button.html() == 'ответить') {
+            if (button.html() == 'ответить') {
                 form.show(undefined, null, 'reply'); 
             } else {
                 form.show(undefined, undefined, 'create');
