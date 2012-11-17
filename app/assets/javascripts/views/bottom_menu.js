@@ -35,13 +35,14 @@ var BottomMenuView = Backbone.View.extend({
     },
 
     setButtonValue: function(value) {
+        var button = this.$el.find('#qr_button');
         if (value == 'previous') {
-            this.$button.html(this.previousButtonValue);
+            button.html(this.previousButtonValue);
         } else {
-            if (this.$button.html() != value) {
-                this.previousButtonValue = this.$button.html();
+            if (button.html() != value) {
+                this.previousButtonValue = button.html();
             }
-            this.$button.html(value);
+            button.html(value);
         }
         return this;
     },
