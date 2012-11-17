@@ -19,7 +19,7 @@ class AdminController < ApplicationController
 
   def post_info
     @post = RPost.get_by_rid(params[:rid].to_i)
-    @post = RThread.get_by_Rid(params[:rid].to_i) unless @post
+    @post = RThread.get_by_rid(params[:rid].to_i) unless @post
     if @post == nil
       return render(text: 'Not found')
     end
