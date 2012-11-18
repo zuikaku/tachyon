@@ -126,9 +126,10 @@ class ApplicationController < ActionController::Base
 
   def get_counters
     unless (posts = Rails.cache.read("post_count"))
-      start_of_hour = Time.zone.now - (Time.now.min.minutes + Time.now.sec)
-      posts = RPost.where(created_at: start_of_hour..Time.zone.now).count
-      posts += RThread.where(created_at: start_of_hour..Time.zone.now).count 
+      # start = Time.zone.now - (Time.now.min.minutes + Time.now.sec) # posts per hour
+      start = Time.zone.now.at_midnight
+      posts = RPost.where(created_at: start..Time.zone.now).count
+      posts += RThread.where(created_at: start..Time.zone.now).count 
       Rails.cache.write("post_count", posts)
     end
     return {
