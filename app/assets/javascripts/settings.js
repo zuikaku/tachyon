@@ -17,7 +17,7 @@ var SettingsView = Backbone.View.extend({
             favorites:          [],
             seen:               {},
             threads_per_page:   10,
-            last_replies:       0,
+            last_replies:       6,
             fixed_header:       true,
             strict_hiding:      false,
             scroll_to_post:     true,

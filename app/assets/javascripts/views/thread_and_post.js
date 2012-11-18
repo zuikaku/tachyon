@@ -335,7 +335,10 @@ var ThreadView = Backbone.View.extend({
             settings.hide(rid);
             if (settings.get('strict_hiding') == true) {
                 if (this.className == 'thread') {
-                    container.next().remove();
+                    var next = container.next();
+                    if (next.is('hr') == true) {
+                        next.remove();
+                    }
                 }
                 container.remove();
             } else {
