@@ -555,7 +555,6 @@ function initializeInterface() {
         if (click == true) {
             event.preventDefault();
             previousPath = document.location.pathname + document.location.hash;
-            window.stop();
             router.navigate(href, {trigger: true});
         }
     });

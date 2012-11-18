@@ -5,6 +5,7 @@ class Captcha < ActiveRecord::Base
   
   before_create do 
     old_captcha.destroy if (old_captcha = Captcha.where(key: self.key).first)
+    old_captcha.destroy if (old_captcha = Captcha.where(word: self.word).first)
     self.generate_image
   end
 
