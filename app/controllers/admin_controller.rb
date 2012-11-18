@@ -57,6 +57,26 @@ class AdminController < ApplicationController
         clear_cache(@post)
         CometController.publish('/counters', counters)
       end
+      if @post.kind_of?(RThread) and params.has_key?(:tags)
+        tags = Array.new
+        params[:tags].split(' ').each do |al|
+          tag = Tag.where(alias: al).first
+          if tag == nil
+            @response[:errors] << t('errors.content.tags')
+            break
+          else
+            tags << tag
+          end
+        end
+        if @response[:errors].empty?
+          @post.tags.clear
+          tags.each { |tag| @post.tags << tag }
+        end
+        clear_cache(@post)
+        counters = get_counters
+        counters[:post] = @post.jsonify
+        CometController.publish('/counters', counters)
+      end
     end
     @response[:status] = 'success' if @response[:errors].empty?
     respond!

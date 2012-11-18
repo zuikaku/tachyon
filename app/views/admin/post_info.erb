@@ -26,6 +26,13 @@
   <input type="checkbox" name="ban" />
   забанить на <input type="text" name="ban_days" value="3" /> суток
 </p>
+<% if @post.kind_of?(RThread) %>
+  <p>
+    <input type="checkbox" name="change_tags" />
+    изменить тэги на 
+    <input type='text' id='admin_tags' value='<%= @post.tags_aliases.join(' ') %>'>
+  </p>
+<% end %>
 <p>
   <input type='text' placeholder="причина" id='admin_reason' name='reason'>
 </p>

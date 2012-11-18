@@ -64,6 +64,9 @@ var ThreadView = Backbone.View.extend({
             data.ban = 'true';
             data.ban_days = this.$el.find("input[name='ban_days']").val();
         }
+        if (this.$el.find("input[name='change_tags']").attr('checked') == 'checked') {
+            data.tags = $("#admin_tags").val();
+        }
         $.ajax({
             url:    '/admin/hexenhammer',
             type:   'post',

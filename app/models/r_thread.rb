@@ -15,7 +15,7 @@ class RThread < ActiveRecord::Base
   end
 
   before_destroy do
-    self.r_posts.destroy_all
+    self.r_posts.delete_all
     self.r_file.destroy if self.has_file?
     regexp = /<div class='post_link'><a href='.{3,25}\/(\d+).html#i(\d+)'>&gt;&gt;(\d+)<\/a><\/div>/
     self.message.scan(regexp).each do |link|
