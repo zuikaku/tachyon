@@ -6,6 +6,12 @@ var ThreadModel = Backbone.Model.extend({
         this.full = full;
         var posts = [];
         if (json_posts != undefined) {
+            if (action == 'index') {
+                var lastReplies = settings.get('last_replies');
+                if (lastReplies != 0 && json_posts.length > lastReplies) {
+                    json_posts = json_posts.slice(json_posts.length - lastReplies);
+                }
+            }
             for (var i=0; i < json_posts.length; i++) {
                 posts[i] = new PostModel(json_posts[i])
             }

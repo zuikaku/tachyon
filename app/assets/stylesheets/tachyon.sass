@@ -148,7 +148,7 @@ footer
     margin-top: 0
     font-size: 16px
 
-#bottom_menu, #qr_form, #taglist, .manage_menu, #loading, #login, .preview p, #settings
+#bottom_menu, #qr_form, #taglist, .manage_menu, #loading, #login, .preview p, #settings, .replies_count
   background: #222
   color: white
   opacity: 0.9
@@ -327,18 +327,18 @@ footer
   .title
     color: black
     font-size: 18px
-    margin-bottom: 5px
-    margin-left: 10px
+    margin: 0px 10px 5px 4px
     &:hover
       color: #555
   .thread_info
     font-size: 12px
     color: #777
     display: block
+    margin-bottom: 9px
 
 .fav_button, .hide_button, .qr_link
   display: inline-block
-  margin-left: 15px
+  margin: 0px 7px 0px 0px
 
 
 .file_info 
@@ -574,7 +574,7 @@ img#form_loading
   input
     color: white
     border: 1px solid #666
-  .threads_per_page
+  .threads_per_page, .last_replies
     width: 30px
     text-align: center
   label
@@ -792,3 +792,16 @@ img#form_loading
 
 #admin_tags
   min-width: 50px
+
+.replies_count 
+  width: 100px
+  font-size: 14px
+  text-align: center
+  padding: 3px
+  position: absolute
+  top: 30px
+  right: 0
+  .replies_total
+    color: #aaa
+    &:hover
+      color: white

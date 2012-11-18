@@ -53,6 +53,7 @@ var MainRouter = Backbone.Router.extend({
     },
 
     before: function(response) {
+        section.removeAttr('style');
         controller = null;
         action = null;
         form.hide();
@@ -286,6 +287,7 @@ var MainRouter = Backbone.Router.extend({
                 section.html('');
                 hideLoadingIndicator();
                 window.scrollTo(0, 0);
+                var lastReplies = parseInt(settings.get('last_replies'));
                 for (var i=0; i < response.threads.length; i++) {
                     var thread = router.buildThread(response.threads[i], false);
                     section.append(thread.container);
@@ -293,6 +295,9 @@ var MainRouter = Backbone.Router.extend({
                     if (i != response.threads.length-1) {
                         section.append("<hr />");
                     }
+                }
+                if (lastReplies == 0) {
+                    section.attr('style', "max-width: 1200px; margin: 0 auto; margin-top: 70px")
                 }
                 threadsCollection = new ThreadsCollection(threads);
                 if (threadsCollection.length == 0) {
@@ -318,7 +323,8 @@ var MainRouter = Backbone.Router.extend({
             var container = $("<div class='thread_container'></div>");
         }
         container.append(thread.view.render().el);
-        if (thread.view.hidden == false) {
+        var lastReplies = parseInt(settings.get('last_replies'));
+        if (thread.view.hidden == false && (lastReplies != 0 || action == 'show')) {
             thread.posts.each(function(post) {
                 post.view = new PostView({id: 'i' + post.get('rid')}, post);
                 container.append(post.view.render().el);
@@ -353,7 +359,7 @@ var MainRouter = Backbone.Router.extend({
             if (scroll != false) {
                 $.scrollTo(test, 150, {offset: {top: -200}, easing: 'linear'});
             }
-            if (action != 'live') {
+            if (action == 'show') {
                 document.location.hash = 'i' + rid;
             }
         }

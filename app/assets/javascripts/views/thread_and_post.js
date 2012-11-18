@@ -442,7 +442,7 @@ var ThreadView = Backbone.View.extend({
                     delete thread.posts.at(i);
                 }
             }
-            event.currentTarget.innerHTML = thread.verboseOmitted(thread.posts.length - 6);
+            event.currentTarget.innerHTML = thread.verbosePosts(thread.posts.length - 6, 'omitted');
             event.currentTarget.innerHTML += ' спустя:';
         } else {
             event.currentTarget.innerHTML = 'загружаем...';
@@ -543,7 +543,7 @@ var ThreadView = Backbone.View.extend({
         return t;
     },
 
-    verboseOmitted: function(number) {
+    verbosePosts: function(number, type) {
         var result = number + ' пост';
         var mod = number % 10;
         var mod2 = number % 100;
@@ -625,18 +625,12 @@ var ThreadView = Backbone.View.extend({
             }
         }
         var t = "<div class='thread_body'>";
+        var lastReplies = parseInt(settings.get('last_replies'));
             if (this.model.get('file') != null) {
                 t += this.renderFileInfo(this.model.get('file'));
                 t += this.renderFileContainer(this.model.get('file'));
             }
-            var url = '/thread/' + this.model.get('rid'); 
-            t += "<a href='" + url + "' class='post_link'>#" + this.model.get('rid');
-            t += "</a>";
-            if (this.model.get('title') != '') {
-                t += "<a href='/thread/" + this.model.get('rid') + "' class='title'>";
-                t += this.model.get('title');
-                t += "</a>";
-            }
+            var url = '/thread/' + this.model.get('rid');             
             t += "<a href='#' class='fav_button' ";
                 if (settings.isFavorite(this.model.get('rid')) == true)  {
                     var star = window.base64images.star_full;
@@ -652,6 +646,13 @@ var ThreadView = Backbone.View.extend({
                     t += "<img src='" + window.base64images.hide + "' />";
                 t += "</a>";
             }
+            if (this.model.get('title') != '') {
+                t += "<a href='/thread/" + this.model.get('rid') + "' class='title'>";
+                t += this.model.get('title');
+                t += "</a>";
+            }
+            t += "<a href='" + url + "' class='post_link'>#" + this.model.get('rid');
+            t += "</a>";
             t += "<span class='thread_info'>";
                 t += this.renderDateTime(this.model.get('created_at')) + ', ';
                 t += this.renderTagList(this.model.get('tags'));
@@ -663,15 +664,27 @@ var ThreadView = Backbone.View.extend({
             t += "</span>";
             t += "<blockquote>" + this.model.get('message') + "</blockquote>";
             if (this.model.get('replies_rids').length > 0) {
-                t += this.renderRepliesRids(this.model.get('replies_rids'));
+                if (lastReplies == 0 && action == 'index') {
+                    // bydlocode!
+                } else {
+                    t += this.renderRepliesRids(this.model.get('replies_rids'));
+                }
             }
         t += "</div>";
-        if (this.model.posts != undefined && action != 'live') {
-            if (this.full != true && this.model.get('replies_count') > this.model.posts.length) {
-                t += "<div class='omitted'><a href='" + url + "' title='развернуть тред'>" 
-                t += this.verboseOmitted(this.model.get('replies_count') - 6);
-                t += " спустя:</a></div>";
+        if (lastReplies != 0) {
+            if (this.model.posts != undefined && action != 'live') {
+                if (this.full != true && this.model.get('replies_count') > this.model.posts.length) {
+                    t += "<div class='omitted'><a href='" + url + "' title='развернуть тред'>" 
+                    t += this.verbosePosts(this.model.get('replies_count') - lastReplies, 'omitted');
+                    t += " спустя:</a></div>";
+                }
             }
+        } else {
+            t += "<div class='replies_count'>";
+                t += "<a href='" + url + "' class='replies_total'>"
+                    t += this.verbosePosts(this.model.get('replies_count'));
+                t += "</a>";
+            t += "</div>";
         }
         this.el.innerHTML = t;
         return this;

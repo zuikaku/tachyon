@@ -153,8 +153,21 @@ class ApplicationController < ActionController::Base
         end
       end        
     end
-    @response[:captcha] = Captcha.get_key(defensive) 
-    session[:captcha] = @response[:captcha]
+    procceed = true
+    while procceed == true
+      captcha = nil
+      begin
+        captcha = Captcha.get_key(defensive)
+      rescue 
+        # don't give a fuck
+      end
+      if captcha != nil
+        @response[:captcha] = Captcha.get_key(defensive) 
+        session[:captcha] = @response[:captcha]
+        procceed = false
+        break
+      end
+    end
   end
 
   def validate_captcha

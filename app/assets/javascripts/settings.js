@@ -17,6 +17,7 @@ var SettingsView = Backbone.View.extend({
             favorites:          [],
             seen:               [],
             threads_per_page:   10,
+            last_replies:       0,
             fixed_header:       true,
             strict_hiding:      false,
             scroll_to_post:     true,
@@ -195,8 +196,11 @@ var SettingsView = Backbone.View.extend({
             }
             return false;
         } 
+        if (element.attr('name') == 'last_replies') {
+            value = parseInt(value);
+        }
         if (element.attr('name') == 'threads_per_page') {
-            tryInteger = parseInt(value);
+            var tryInteger = parseInt(value);
             if (tryInteger >= 5 && tryInteger <= 20) {
                 value = tryInteger;
             } else {
@@ -278,11 +282,16 @@ var SettingsView = Backbone.View.extend({
         return this;
     },  
 
+    _last_replies: function() {
+        return this;
+    },
+
     _set: function() {
         this.
         //     // _fixed_header().
         //     // _lamer_buttons().
                 _mamka().
+                _last_replies().
                 _style();
         //     // _shadows();
         return this;
@@ -328,7 +337,20 @@ var SettingsView = Backbone.View.extend({
             + "<input class='threads_per_page' name='threads_per_page'" 
             + " type='text' value='" + this.get('threads_per_page') + "' />"
             + " тредов на странице."
-        + "</label><br /><br />";
+        + "</label><br />";
+        t += "<label>"
+            + "Показывать по ";
+            t += "<select name='last_replies'>";
+                for (var i = 0; i < 7; i++) {
+                    t += "<option name='" + i + "'";
+                    if (i == this.get('last_replies')) {
+                        t += " selected='selected'";
+                    }
+                    t += ">" + i + "</option>";
+                }
+            t += "</select>";
+            t += " последних ответов после каждого треда.";
+        t += "</label><br /><br />";
         var booleans = {
             fixed_header:   'закрепить меню сверху',
             scroll_to_post: 'перематывать страницу к новому посту после его написания',
