@@ -190,6 +190,7 @@ var MainRouter = Backbone.Router.extend({
     },
 
     show: function(rid) {
+        rid = rid.replace('#new', '');
         showLoadingIndicator();
         $.ajax({
             type:       'post',
@@ -222,6 +223,7 @@ var MainRouter = Backbone.Router.extend({
                 var seen = settings.get('seen');
                 seen[parseInt(thread.model.get('rid'))] = thread.model.get('replies_count');
                 settings.set('seen', seen);
+                cometSubscription = cometClient.subscribe('/thread/' + rid, router.addPost);
                 var buttons = "<div class='thread_buttons'><a href='/~/' class='back_link'>← Назад</a>" 
                 + "<a href='#' class='show_all_pictures_button'>Развернуть картинки</a></div>";
                 thread.container.before(buttons);
@@ -237,7 +239,6 @@ var MainRouter = Backbone.Router.extend({
                 }
                 checkHash();
                 thread.model.updateRepliesCount(thread.model.get('replies_count'))
-                cometSubscription = cometClient.subscribe('/thread/' + rid, router.addPost);
                 router.adjustFooter();
                 return false;
             },
@@ -526,9 +527,8 @@ function checkHash() {
         if (document.location.hash == '#new') {
             var neww = $("#new");
             if (neww.html() != undefined) {
-                $.scrollTo($("#new"));
+                $.scrollTo($("#new"), {offset: {top: -100}});
             }
-            return false;
         }
         var post = threadsCollection.first().posts.where({
             rid: parseInt(document.location.hash.substring(2)),
