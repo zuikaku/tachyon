@@ -328,11 +328,18 @@ var MainRouter = Backbone.Router.extend({
         }
         container.append(thread.view.render().el);
         var lastReplies = parseInt(settings.get('last_replies'));
+        var seen = settings.get('seen');
+        var newPlaced = false;
         if (thread.view.hidden == false && (lastReplies != 0 || action == 'show')) {
-            thread.posts.each(function(post) {
+            for (var i = 0; i < thread.posts.length; i ++) {
+                var post = thread.posts.at(i);
                 post.view = new PostView({id: 'i' + post.get('rid')}, post);
+                if ((i+1) > (parseInt(seen[thread.get('rid')])) && newPlaced == false) {
+                    container.append("<div id='new'>новые посты:</div>");
+                    newPlaced = true;
+                }
                 container.append(post.view.render().el);
-            });
+            }
         }
         return { container: container, model: thread }
     },
@@ -516,6 +523,13 @@ function adjustAbsoluteElements() {
 
 function checkHash() {
     if (document.location.hash != '') {
+        if (document.location.hash == '#new') {
+            var neww = $("#new");
+            if (neww.html() != undefined) {
+                $.scrollTo($("#new"));
+            }
+            return false;
+        }
         var post = threadsCollection.first().posts.where({
             rid: parseInt(document.location.hash.substring(2)),
         })[0];

@@ -348,7 +348,7 @@ var ThreadView = Backbone.View.extend({
         } else {
             settings.unhide(rid);
             this.render();
-            if (this.className == 'thread') {
+            if (this.className == 'thread' && parseInt(settings.get('seen')) != 0) {
                 this.model.posts.each(function(post) {
                     post.view = new PostView({id: 'i' + post.get('rid')}, post);
                     container.append(post.view.render().el);
