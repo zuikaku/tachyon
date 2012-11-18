@@ -15,7 +15,7 @@ var SettingsView = Backbone.View.extend({
             hidden_posts:       [],
             hidden_tags:        ['nsfw', 'trash'],
             favorites:          [],
-            seen:               [],
+            seen:               {},
             threads_per_page:   10,
             last_replies:       0,
             fixed_header:       true,
@@ -37,6 +37,9 @@ var SettingsView = Backbone.View.extend({
         _.bindAll(this, 'render');
         this.render();
         this._set();
+        if (this.get('seen') == "") {
+            this.set('seen', {});
+        }
         return this;
     },
 

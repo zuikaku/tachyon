@@ -219,6 +219,9 @@ var MainRouter = Backbone.Router.extend({
                 var thread = router.buildThread(response.thread, true);
                 section.append(thread.container);
                 threadsCollection = new ThreadsCollection([thread.model]);
+                var seen = settings.get('seen');
+                seen[parseInt(thread.model.get('rid'))] = thread.model.get('replies_count');
+                settings.set('seen', seen);
                 var buttons = "<div class='thread_buttons'><a href='/~/' class='back_link'>← Назад</a>" 
                 + "<a href='#' class='show_all_pictures_button'>Развернуть картинки</a></div>";
                 thread.container.before(buttons);
@@ -233,6 +236,7 @@ var MainRouter = Backbone.Router.extend({
                     $('.back_link').attr('href', previousPath);
                 }
                 checkHash();
+                thread.model.updateRepliesCount(thread.model.get('replies_count'))
                 cometSubscription = cometClient.subscribe('/thread/' + rid, router.addPost);
                 router.adjustFooter();
                 return false;
@@ -342,6 +346,13 @@ var MainRouter = Backbone.Router.extend({
         if (scroll == true) {
             router.highlightPost(post.get('rid'), settings.get('scroll_to_post'));
         }
+        setTimeout(function() {
+            // thread = threadsCollection.first();
+            var seen = settings.get('seen');
+            seen[parseInt(thread.get('rid'))] = thread.get('replies_count');
+            settings.set('seen', seen);
+            thread.updateRepliesCount(parseInt(thread.get('replies_count')));
+        }, 300);
         router.adjustFooter();
         return false;
     },
@@ -587,6 +598,12 @@ function initializeInterface() {
             if (post != null) {
                 post.deleted = true;
                 post.terminate();  
+            }
+        }
+        if (message.replies != undefined) {
+            var thread = router.getPostLocal(parseInt(message.replies[0]));
+            if (thread != null) {
+                thread.updateRepliesCount(parseInt(message.replies[1]));
             }
         }
         return false;

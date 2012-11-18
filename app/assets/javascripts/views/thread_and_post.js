@@ -44,6 +44,34 @@ var ThreadView = Backbone.View.extend({
         return this;
     },
 
+    updateRepliesCount: function(count) {
+        if (parseInt(settings.get('last_replies')) != 0) {
+            return false;
+        }
+        var repliesTotalLink = this.$el.find('.replies_total');
+        repliesTotalLink.html(this.verbosePosts(count));
+        if (action == 'show') {
+            return false;
+        }
+        var seen = settings.get('seen')[this.model.get('rid')];
+        var repliesCount = this.$el.find('.replies_count');
+        if (seen == undefined) {
+            repliesTotalLink.css('color', 'white');
+            return false;
+        } else {
+            seen = parseInt(seen);
+        }
+        if (count > seen) {
+            var t = ", из них <a href='" + repliesTotalLink.attr('href') + "#new";
+            t += "' class='replies_new'>" + this.verbosePosts(count - seen, 'new') + "</a>";
+            repliesCount.html(repliesTotalLink[0].outerHTML + t);
+        } else if (count == seen) {
+            var t = "<a href='" + repliesTotalLink.attr('href') + "' class='replies_total'>"; 
+            t += this.verbosePosts(this.model.get('replies_count')) + "</a>";
+            repliesCount.html(t);
+        }
+    },  
+
     showAdminFeatures: function(event) {
         this.$el.find('p').css('display', 'block');
         $(event.currentTarget).remove();
@@ -547,11 +575,19 @@ var ThreadView = Backbone.View.extend({
         var result = number + ' пост';
         var mod = number % 10;
         var mod2 = number % 100;
-        if ((mod >= 2 && mod <= 4) && !(mod2 >= 12 && mod2 <= 14)) {
-            result += 'а';
-        } else if (mod != 1 || number == 11) {
-            result += 'ов';
-        }
+        if (type == 'new') {
+            result = number + " новы";
+            if (mod == 1 && mod2 != 11) {
+                result += "й";
+            } else {
+                result += 'х';
+            }
+        } else 
+            if ((mod >= 2 && mod <= 4) && !(mod2 >= 12 && mod2 <= 14)) {
+                result += 'а';
+            } else if (mod != 1 || number == 11) {
+                result += 'ов';
+            }
         return result;
     }, 
 
@@ -687,6 +723,7 @@ var ThreadView = Backbone.View.extend({
             t += "</div>";
         }
         this.el.innerHTML = t;
+        this.updateRepliesCount(this.model.get('replies_count'));
         return this;
     }
 });

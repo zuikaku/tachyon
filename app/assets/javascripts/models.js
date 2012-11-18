@@ -32,6 +32,11 @@ var ThreadModel = Backbone.Model.extend({
         }
         delete this;
     },
+
+    updateRepliesCount: function(count) {
+        this.set('replies_count', parseInt(count));
+        this.view.updateRepliesCount(this.get('replies_count'));
+    },
 });
 
 var PostModel = ThreadModel.extend({

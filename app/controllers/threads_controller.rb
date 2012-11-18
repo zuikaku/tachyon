@@ -122,6 +122,7 @@ class ThreadsController < ApplicationController
           counters[:post] = post.jsonify
         else
           counters[:delete] = post.rid
+          counters[:replies] = [@thread.rid, @thread.replies_count]
         end
         CometController.publish('/counters', counters)
         @response[:status] = 'success'
@@ -415,7 +416,6 @@ class ThreadsController < ApplicationController
         @thread.save
         limit = @settings.defence[:speed_limits][:captcha][:post]
         post_json = @post.jsonify([@file], @thread.rid, true)
-        CometController.publish("/thread/#{@thread.rid}", post_json)
         if params.has_key?(:returnpost) 
           @response[:post] = post_json 
         else
@@ -423,7 +423,12 @@ class ThreadsController < ApplicationController
         end
       end
       CometController.publish('/live', post_json)
-      CometController.publish('/counters', get_counters)
+      counters = get_counters
+      unless processing_thread?
+        counters[:replies] = [@thread.rid, @thread.replies_count] 
+        CometController.publish("/thread/#{@thread.rid}", post_json)
+      end
+      CometController.publish('/counters', counters)
       delta = Time.zone.now - @checking
       @ip.post_captcha_needed = true if delta.to_i < limit
       @response[:status] = 'success'
