@@ -69,12 +69,11 @@ class ApplicationController < ActionController::Base
   end
 
   def gc
-    return not_found unless request.local?
     date = (Time.zone.now - 3.days).at_midnight
     parameters = { ip_id: nil, defence_token_id: nil }
     RPost.where("created_at <= ?", date).update_all(parameters)
     RThread.where("created_at <= ?", date).update_all(parameters)
-    DefenceToken.where("updated_at < ?", date).destroy_all
+    DefenceToken.where("updated_at < ?", date).delete_all
     return render(text: 'cleanup successfull')
   end
 
