@@ -333,7 +333,9 @@ var MainRouter = Backbone.Router.extend({
         thread.posts.add(post);
         post.view = new PostView({id: 'i' + post.get('rid')}, post);
         thread.view.$el.parent().append(post.view.render(true).el);
-        router.highlightPost(post.get('rid'), settings.get('scroll_to_post'));
+        if (scroll == true) {
+            router.highlightPost(post.get('rid'), settings.get('scroll_to_post'));
+        }
         router.adjustFooter();
         return false;
     },
