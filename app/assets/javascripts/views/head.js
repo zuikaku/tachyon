@@ -95,7 +95,7 @@ var HeaderView = Backbone.View.extend({
 
     render: function() {
         var t = "<h3><a href='/'>Freeport 7</a></h3>"
-        t += "<div id='posting_info'>за сегодня сообщений: <span>0</span>"
+        t += "<div id='posting_info'>за этот час сообщений: <span>0</span>"
         t += ", онлайн: <b>13</b></div>"
         t += "<menu>"
             t += "<li><a href='#' id='tags_link'>тэги ↓</a></li>"
