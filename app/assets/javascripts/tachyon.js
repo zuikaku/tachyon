@@ -516,7 +516,10 @@ function hideLoadingIndicator() {
         loadingTimeout = null;
     }
     setTimeout(function() {
-        loadingIndicator.css('display', 'none');
+        loadingIndicator.animate({opacity: 0}, 300);
+        setTimeout(function() {
+            loadingIndicator.css('display', 'none');
+        }, 350);
     }, 100);
     return false;
 }
