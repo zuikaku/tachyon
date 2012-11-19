@@ -383,9 +383,9 @@ var MainRouter = Backbone.Router.extend({
             if (scroll != false) {
                 $.scrollTo(test, 150, {offset: {top: -200}, easing: 'linear'});
             }
-            if (action == 'show') {
-                document.location.hash = 'i' + rid;
-            }
+            // if (action == 'show') {
+            //     document.location.hash = 'i' + rid;
+            // }
         }
         return false;
     },
