@@ -507,6 +507,7 @@ function showLoadingIndicator() {
     router.setTitle('...');
     loadingTimeout = setTimeout(function () {
         loadingIndicator.css('display', 'block');
+        loadingIndicator.css('opacity', '0.9');
     }, 450);
 }
 
