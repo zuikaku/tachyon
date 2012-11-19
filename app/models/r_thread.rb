@@ -16,9 +16,9 @@ class RThread < ActiveRecord::Base
   end
 
   before_destroy do
-    file_ids = self.r_posts.pluck('id')
-    file_ids << self.r_file_id if self.has_file?
-    RFile.where("id IN (?)", file_ids).destroy_all
+    # file_ids = self.r_posts.pluck('id')
+    # file_ids << self.r_file_id if self.has_file?
+    # RFile.where("id IN (?)", file_ids).destroy_all
     self.r_posts.delete_all
     self.delete
 
