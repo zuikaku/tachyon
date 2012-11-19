@@ -56,7 +56,7 @@ var ThreadView = Backbone.View.extend({
         var seen = settings.get('seen')[this.model.get('rid')];
         var repliesCount = this.$el.find('.replies_count');
         if (seen == undefined) {
-            repliesTotalLink.css('color', 'white');
+            repliesTotalLink.css('font-weight', 'bold');
             return false;
         } else {
             seen = parseInt(seen);
@@ -726,7 +726,9 @@ var ThreadView = Backbone.View.extend({
             t += "</div>";
         }
         this.el.innerHTML = t;
-        this.updateRepliesCount(this.model.get('replies_count'));
+        if (lastReplies == 0) {
+            this.updateRepliesCount(this.model.get('replies_count'));
+        }
         return this;
     }
 });

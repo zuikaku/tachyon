@@ -39,7 +39,9 @@
     <%= minutes %>:<%= seconds %>
   <% else %>  
     Файл: <a href="<%= file[:url_full] %>" target="_blank"><%= file[:extension] %></a>
-    <%= file[:size] / 1024 %> kb.
+    <% if file[:size] != nil %>
+      <%= file[:size] / 1024 %> kb.
+    <% end %>
     <% if file[:is_picture] == true %>
       &mdash; <%= file[:columns] %>×<%= file[:rows] %>
     <% end %>

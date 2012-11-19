@@ -148,7 +148,7 @@ footer
     margin-top: 0
     font-size: 16px
 
-#bottom_menu, #qr_form, #taglist, .manage_menu, #loading, #login, .preview p, #settings, .replies_count
+#bottom_menu, #qr_form, #taglist, .manage_menu, #loading, #login, .preview p, #settings
   background: #222
   color: white
   opacity: 0.9
@@ -794,7 +794,7 @@ img#form_loading
   min-width: 50px
 
 .replies_count 
-  color: #aaa
+  color: #777
   min-width: 80px
   font-size: 14px
   text-align: center
@@ -803,15 +803,22 @@ img#form_loading
   top: 30px
   right: 0
   .replies_total
-    color: #aaa
+    color: #777
     &:hover
-      color: white
+      color: black
   .replies_new
-    color: #fff
+    color: black
+    font-weight: bold
     &:hover
-      text-shadow: 0 0 0.4em #fff
+      color: #777
 
 #new 
   margin: 7px
   color: #777
   font-style: italic
+
+.thread_container.single
+  padding: 0px 5px 5px 5px
+  border: 1px solid #bbb
+  .thread_info
+    border-bottom: 1px dashed #aaa

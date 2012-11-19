@@ -297,7 +297,7 @@ var MainRouter = Backbone.Router.extend({
                     var thread = router.buildThread(response.threads[i], false);
                     section.append(thread.container);
                     threads[i] = thread.model;
-                    if (i != response.threads.length-1) {
+                    if (i != response.threads.length-1 && lastReplies != 0) {
                         section.append("<hr />");
                     }
                 }
@@ -343,6 +343,9 @@ var MainRouter = Backbone.Router.extend({
                 }
                 container.append(post.view.render().el);
             }
+        }
+        if (lastReplies == 0 && action == 'index') {
+            container.addClass("single");
         }
         return { container: container, model: thread }
     },
