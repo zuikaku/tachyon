@@ -335,9 +335,11 @@ var MainRouter = Backbone.Router.extend({
             for (var i = 0; i < thread.posts.length; i ++) {
                 var post = thread.posts.at(i);
                 post.view = new PostView({id: 'i' + post.get('rid')}, post);
-                if ((i+1) > (parseInt(seen[thread.get('rid')])) && newPlaced == false) {
-                    container.append("<div id='new'>новые посты:</div>");
-                    newPlaced = true;
+                if (lastReplies == 0) {
+                    if ((i+1) > (parseInt(seen[thread.get('rid')])) && newPlaced == false) {
+                        container.append("<div id='new'>новые посты:</div>");
+                        newPlaced = true;
+                    }
                 }
                 container.append(post.view.render().el);
             }

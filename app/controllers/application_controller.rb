@@ -69,6 +69,9 @@ class ApplicationController < ActionController::Base
   end
 
   def gc
+    unless request.remote_ip.to_s == "127.0.0.1" and request.headers['HTTP_REAL_IP'].to_s == ''
+      return render(text: 'gtfo')
+    end
     date = (Time.zone.now - 3.days).at_midnight
     parameters = { ip_id: nil, defence_token_id: nil }
     RPost.where("created_at <= ?", date).update_all(parameters)
@@ -210,13 +213,13 @@ class ApplicationController < ActionController::Base
       array = href.split('||')
       href = array[0].gsub!('[', '').strip!
       name = array[1].gsub!(']', '').strip!
-      anon = 'http://anonym.to/?' unless (href.include?('freeport7.org') or href.include?('anonym.to'))
+      anon = 'http://anonym.to/?' unless (href.include?('freeport7.') or href.include?('anonym.to'))
       " <a href='#{anon + href}' target='_blank'>#{name}</a>"
     end
     text.gsub!(/( |^)(http|https)\:\/\/[a-zA-Z0-9\-\.]+\.[a-zA-Z]{2,4}(\/\S*)?/) do |href|
       anon = ''
       href.strip!
-      unless (href.include?('freeport7.org') or href.include?('anonym.to'))
+      unless (href.include?('freeport7.') or href.include?('anonym.to'))
         anon = "http://anonym.to/?"
       end
       " <a href='#{anon + href}' target='_blank'>#{href}</a> "
