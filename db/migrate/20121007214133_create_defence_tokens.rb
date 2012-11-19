@@ -8,7 +8,7 @@ class CreateDefenceTokens < ActiveRecord::Migration
       t.text     "allowed_file_types"
       t.integer  "max_file_size",           :default => 3145728
       t.integer  "threads_per_page",        :default => 10
-      t.integer  "max_threads",             :default => 1000
+      t.integer  "max_threads",             :default => 500
       t.integer  "bump_limit",              :default => 500
       t.integer  "max_references_per_post", :default => 10
       t.datetime "created_at",                                   :null => false

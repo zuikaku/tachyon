@@ -3,7 +3,7 @@ class RFile < ActiveRecord::Base
   has_many :r_files
 
   before_destroy do
-    unless RFile.where(md5_hash: self.md5_hash).count > 1
+    if RFile.where(md5_hash: self.md5_hash).count < 2
       begin 
         File.delete("#{Rails.root}/public#{self.url_full}")
         File.delete("#{Rails.root}/public#{self.url_small}")

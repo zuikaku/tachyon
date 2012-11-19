@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20121007214133) do
+ActiveRecord::Schema.define(:version => 20121007214134) do
 
   create_table "admin_log_entries", :force => true do |t|
     t.string   "message"
@@ -138,10 +138,12 @@ ActiveRecord::Schema.define(:version => 20121007214133) do
     t.datetime "created_at",                          :null => false
     t.datetime "updated_at",                          :null => false
     t.integer  "defence_token_id"
+    t.boolean  "old"
   end
 
   add_index "r_threads", ["defence_token_id"], :name => "index_r_threads_on_defence_token_id"
   add_index "r_threads", ["ip_id"], :name => "index_r_threads_on_ip_id"
+  add_index "r_threads", ["old"], :name => "index_r_threads_on_old"
   add_index "r_threads", ["r_file_id"], :name => "index_r_threads_on_r_file_id"
   add_index "r_threads", ["rid"], :name => "index_r_threads_on_rid", :unique => true
 

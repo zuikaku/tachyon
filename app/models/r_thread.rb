@@ -11,23 +11,30 @@ class RThread < ActiveRecord::Base
 
   before_create do
     self.bump = Time.zone.now
+    self.old = false
     self.replies_rids = Array.new
   end
 
   before_destroy do
+    file_ids = self.r_posts.pluck('id')
+    file_ids << self.r_file_id if self.has_file?
+    RFile.where("id IN (?)", file_ids).destroy_all
     self.r_posts.delete_all
-    self.r_file.destroy if self.has_file?
-    regexp = /<div class='post_link'><a href='.{3,25}\/(\d+).html#i(\d+)'>&gt;&gt;(\d+)<\/a><\/div>/
-    self.message.scan(regexp).each do |link|
-      post = RPost.where(rid: link[1].to_i).first
-      post = RThread.where(rid: link[1].to_i).first unless post
-      if post
-        post.replies_rids.each do |hash|
-          post.replies_rids.delete(hash) if hash[:post] == self.rid
-        end
-        post.save
-      end
-    end
+    self.delete
+
+    # self.r_posts.delete_all
+    # self.r_file.destroy if self.has_file?
+    # regexp = /<div class='post_link'><a href='.{3,25}\/(\d+).html#i(\d+)'>&gt;&gt;(\d+)<\/a><\/div>/
+    # self.message.scan(regexp).each do |link|
+    #   post = RPost.where(rid: link[1].to_i).first
+    #   post = RThread.where(rid: link[1].to_i).first unless post
+    #   if post
+    #     post.replies_rids.each do |hash|
+    #       post.replies_rids.delete(hash) if hash[:post] == self.rid
+    #     end
+    #     post.save
+    #   end
+    # end
   end
 
   def self.get_by_rid(rid)
@@ -68,6 +75,7 @@ class RThread < ActiveRecord::Base
         replies_rids:   self.replies_rids,
         replies_count:  self.replies_count,
         created_at:     self.created_at,
+        old:            self.old,
         posts:          Array.new,
         file:           nil,
         tags:           self.tags_jsonify,

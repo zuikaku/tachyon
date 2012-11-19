@@ -1,5 +1,6 @@
 class ThreadsController < ApplicationController
   before_filter do
+    Rails.cache.clear
     if ['index', 'page'].include?(params[:action])
       if @mobile and params.has_key?(:path)
         return not_found
@@ -410,8 +411,9 @@ class ThreadsController < ApplicationController
         end
       else
         @thread.replies_count += 1
-        if @settings.bump_limit > @thread.replies_count
-          @thread.bump = Time.zone.now if @post.sage == false 
+        if (@settings.bump_limit > @thread.replies_count) and @post.sage == false
+          @thread.bump = Time.zone.now 
+          @thread.old = false
         end
         @thread.save
         limit = @settings.defence[:speed_limits][:captcha][:post]
@@ -422,6 +424,8 @@ class ThreadsController < ApplicationController
           @response[:post_rid] = @post.rid
         end
       end
+      old_ids = RThread.order('bump DESC').offset(@settings.max_threads).pluck('r_threads.id')
+      RThread.where("r_threads.id IN (?)", old_ids).update_all(old: true)
       CometController.publish('/live', post_json)
       counters = get_counters
       unless processing_thread?

@@ -72,11 +72,13 @@ class ApplicationController < ActionController::Base
     unless request.remote_ip.to_s == "127.0.0.1" and request.headers['HTTP_REAL_IP'].to_s == ''
       return render(text: 'gtfo')
     end
-    date = (Time.zone.now - 3.days).at_midnight
+    date = (Time.zone.now - 2.days).at_midnight
     parameters = { ip_id: nil, defence_token_id: nil }
     RPost.where("created_at <= ?", date).update_all(parameters)
     RThread.where("created_at <= ?", date).update_all(parameters)
     DefenceToken.where("updated_at < ?", date).delete_all
+    RThread.where(old: true).destroy_all
+    Rails.cache.clear
     return render(text: 'cleanup successfull')
   end
 
