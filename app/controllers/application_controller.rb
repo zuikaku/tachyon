@@ -141,7 +141,7 @@ class ApplicationController < ActionController::Base
     return {
       online:   Ip.where(updated_at: (Time.zone.now - 5.minutes)..Time.zone.now).count,
       posts:    posts,
-      version:  "VERSION",
+      version:  VERSION,
     }
   end
 
