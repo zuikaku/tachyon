@@ -32,8 +32,14 @@ class RPost < ActiveRecord::Base
 
   before_destroy do
     if (thread = self.r_thread)
-      previous = thread.r_posts.offset(thread.replies_count-2).limit(1).first
-      thread.bump = previous.created_at
+      if thread.replies_count > 1
+        offset = thread.replies_count-2
+        offset = 0 if offset < 0
+        previous = thread.r_posts.offset(thread.replies_count-2).limit(1).first
+        thread.bump = previous.created_at
+      else 
+        thread.bump = thread.created_at
+      end
       thread.replies_count -= 1
       thread.save
     end
