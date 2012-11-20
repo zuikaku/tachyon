@@ -11,14 +11,18 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20121007214134) do
+ActiveRecord::Schema.define(:version => 20121007214135) do
 
   create_table "admin_log_entries", :force => true do |t|
-    t.string   "message"
     t.integer  "moder_id"
     t.datetime "created_at", :null => false
     t.datetime "updated_at", :null => false
+    t.string   "target"
+    t.string   "action"
+    t.string   "reason"
   end
+
+  add_index "admin_log_entries", ["moder_id"], :name => "index_admin_log_entries_on_moder_id"
 
   create_table "bans", :force => true do |t|
     t.string   "reason"

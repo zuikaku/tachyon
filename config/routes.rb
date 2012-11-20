@@ -13,10 +13,11 @@ Tachyon::Application.routes.draw do
   end
 
   scope 'about' do
-    match '/'                 => 'about#site'
-    match '/engine'           => 'about#engine'
-    match '/rules'            => 'about#rules'
-    match '/faq'              => 'about#faq'
+    match ''                  => 'about#site'
+    match 'engine'            => 'about#engine'
+    match 'rules'             => 'about#rules'
+    match 'faq'               => 'about#faq'
+    match 'modlog'            => 'about#modlog'
   end
 
   scope 'admin' do 

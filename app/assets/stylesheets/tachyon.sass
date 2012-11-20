@@ -683,7 +683,7 @@ img#form_loading
       color: #aaa
       &:hover, &.active
         color: #fff
-        text-shadow: 0 0 0.2em #fff
+        text-shadow: 0 0 0.4em #fff
       &.active
         text-decoration: underline
   blockquote
@@ -693,7 +693,7 @@ img#form_loading
     p
       margin: 0px 0px 0px 30px
       padding: 0
-  table
+  table.markup
     margin: 0 auto
     width: 500px
     font-size: 14px
@@ -709,6 +709,20 @@ img#form_loading
         color: #044983
         font-size: 16px
         text-align: center
+  table.mod_log
+    margin: 0 auto
+    tr, td
+      border: 1px solid #ccc
+    td
+      padding: 5px
+      font-size: 12px
+      &.title
+        background: #ddd
+        font-size: 14px
+        font-style: italic
+        text-align: center
+        cursor: default
+        color: #666
 
 #login
   position: fixed

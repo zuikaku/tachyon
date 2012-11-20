@@ -5,8 +5,8 @@ class ApplicationController < ActionController::Base
 
   before_filter do
     return render(text: 'unverified request', status: 403) unless verified_request?
-    @host = request.headers['HTTP_HOST']
-    @host = request.headers['HTTP_SERVER_NAME'] if Rails.env.production?
+    @host = request.headers['HTTP_HOST'].to_s
+    @host = request.headers['HTTP_SERVER_NAME'].to_s if Rails.env.production?
     @response = Hash.new
     @start_time = Time.zone.now.usec
     utility = %w( mobile_off gc ).include?(params[:action])

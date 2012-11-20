@@ -19,4 +19,7 @@ class AboutController < ApplicationController
 
   def faq
   end
+
+  def modlog
+  end
 end

@@ -4,6 +4,8 @@ class Ban < ActiveRecord::Base
   validates_presence_of :expires
   
   before_create do 
-    old_ban.destroy if (old_ban = self.ip.ban)
+    if (old_ban = self.ip.ban)
+      old_ban.delete
+    end
   end
 end

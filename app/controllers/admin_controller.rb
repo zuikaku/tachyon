@@ -1,3 +1,5 @@
+# coding: utf-8
+
 class AdminController < ApplicationController
   before_filter do 
     unless params[:action] == 'login' 
@@ -39,6 +41,20 @@ class AdminController < ApplicationController
     @response[:errors] << "not found" if @post == nil
     @response[:errors] << t('errors.admin.reason') if params[:reason].empty?
     if @response[:errors].empty?
+      log = AdminLogEntry.new(moder_id: @moder.id, action: "", 
+        target: "##{@post.rid}", reason: params[:reason])
+      if params[:delete] == 'true'
+        counters = get_counters
+        counters[:delete] = @post.rid
+        token = @post.defence_token
+        if token != nil
+          token.delete
+        end
+        @post.destroy
+        clear_cache(@post)
+        CometController.publish('/counters', counters)
+        log.action += "Сообщение удалено. "
+      end
       if params[:ban] == 'true'
         days = params[:ban_days].to_i
         ban = Ban.create( reason:   params[:reason],
@@ -46,18 +62,18 @@ class AdminController < ApplicationController
                           moder_id: @moder.id,
                           level:    1,
                           expires:  Time.zone.now + days.days, )
-        @post.defence_token.destroy if @post.defence_token
-        @post.defence_token_id = nil
-      end
-      if params[:delete] == 'true'
-        counters = get_counters
-        counters[:delete] = @post.rid
-        @post.defence_token.destroy if @post.defence_token
-        @post.destroy
-        clear_cache(@post)
-        CometController.publish('/counters', counters)
+        unless @post.destroyed?
+          token = @post.defence_token
+          if token != nil
+            token.delete
+          end
+          @post.defence_token_id = nil
+          @post.save
+        end
+        log.action += "Автор забанен на #{days} суток. "
       end
       if @post.kind_of?(RThread) and params.has_key?(:tags)
+        log.action += "Изменены тэги (изначальные: #{@post.tags_aliases.join(", ")})."
         tags = Array.new
         params[:tags].split(' ').each do |al|
           tag = Tag.where(alias: al).first
@@ -78,7 +94,11 @@ class AdminController < ApplicationController
         CometController.publish('/counters', counters)
       end
     end
-    @response[:status] = 'success' if @response[:errors].empty?
+    Rails.cache.delete('views/modlog')
+    if @response[:errors].empty?
+      @response[:status] = 'success' 
+      log.save
+    end
     respond!
   end
 
