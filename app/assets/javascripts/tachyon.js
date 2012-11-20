@@ -650,6 +650,7 @@ function initializeInterface() {
             if (message.version != VERSION && versionMismatchAlerted == false) {
                 alert('Сайт обновился. Перезагрузите страницу.');
                 versionMismatchAlerted = true;
+                $("footer").css('color', 'red');
             }
         }
         return false;
