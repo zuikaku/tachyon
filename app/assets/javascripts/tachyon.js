@@ -259,7 +259,7 @@ var MainRouter = Backbone.Router.extend({
             data.rids = settings.get('favorites');
         }
         if (settings.get('strict_hiding') == true) {
-            data.hidden_posts = settings.get('hidden_posts');
+            data.hidden_posts = settings.get('hidden_threads');
             data.hidden_tags  = settings.get('hidden_tags' );
         }
         $.ajax({

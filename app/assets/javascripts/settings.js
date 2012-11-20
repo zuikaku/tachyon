@@ -12,7 +12,8 @@ var SettingsView = Backbone.View.extend({
 
     initialize: function() {
         var defaults = {
-            hidden_posts:       [],
+            hidden_threads:     [],
+            hidden_replies:     [],
             hidden_tags:        ['nsfw', 'trash'],
             favorites:          [],
             seen:               {},
@@ -40,6 +41,7 @@ var SettingsView = Backbone.View.extend({
         if (this.get('seen') == "") {
             this.set('seen', {});
         }
+        localStorage.removeItem('hidden_posts');
         return this;
     },
 
@@ -100,9 +102,10 @@ var SettingsView = Backbone.View.extend({
     },
 
     isHidden: function(object) {
-        var posts = this.contains(this.get('hidden_posts'), object);
+        var threads = this.contains(this.get('hidden_threads'), object);
+        var posts = this.contains(this.get('hidden_replies'), object);
         var tags = this.contains(this.get('hidden_tags'), object);
-        return (posts[0] == true || tags[0] == true);
+        return (posts[0] == true || tags[0] == true || threads[0] == true);
     },
 
     toggleFavorite: function(threadRid, action) {
@@ -121,19 +124,23 @@ var SettingsView = Backbone.View.extend({
         return true;
     },
 
-    hide: function(object) {
-        return this.hidingToggle(object, 'hide');
+    hide: function(object, isThread) {
+        return this.hidingToggle(object, 'hide', isThread);
     },
 
-    unhide: function(object) {
-        return this.hidingToggle(object, 'unhide');
+    unhide: function(object, isThread) {
+        return this.hidingToggle(object, 'unhide', isThread);
     },
 
-    hidingToggle: function(object, action) {
+    hidingToggle: function(object, action, isThread) {
         if (typeof object == 'string') {
             var key = 'hidden_tags';
         } else {
-            var key = 'hidden_posts';
+            if (isThread == false) {
+                var key = 'hidden_replies';
+            } else {
+                var key = 'hidden_threads';
+            }
         }
         var hidden = this.get(key);
         var contains = this.contains(hidden, object);
@@ -141,6 +148,9 @@ var SettingsView = Backbone.View.extend({
             hidden.splice(contains[1], 1);
         } else if (action == 'hide' && contains[0] == false) {
             hidden.push(object);
+            if (key == 'hidden_threads' && hidden.length > 50) {
+                hidden.shift();                
+            }
         }
         this.set(key, hidden);
         return false;

@@ -1,6 +1,5 @@
 class ThreadsController < ApplicationController
   before_filter do
-    Rails.cache.clear
     if ['index', 'page'].include?(params[:action])
       if @mobile and params.has_key?(:path)
         return not_found
@@ -181,6 +180,7 @@ class ThreadsController < ApplicationController
   end
 
   def show_page(page_number)
+    @response[:errors] = Array.new
     if @mobile == true
       cache = Rails.cache.read("views/#{params[:tag]}/#{page_number}")
       return render(text: cache, layout: 'application') if cache
@@ -190,13 +190,24 @@ class ThreadsController < ApplicationController
     amount = 7 if @mobile
     params[:rids] = [1] unless params.has_key?(:rids)
     if amount < 5 or amount > 20 
-      @response[:errors] = ['invalid request']
-      @response[:status] = 'fail'
-      return respond!
+      @response[:errors] << 'invalid request'
+    end
+    if params.has_key?(:hidden_posts)
+      if params[:hidden_posts].size > 50
+        @response[:errors] << 'invalid request' 
+      else
+        for i in 0..(params[:hidden_posts].length-1)
+          params[:hidden_posts][i] = params[:hidden_posts][i].to_i
+        end
+      end
     end
     @response[:status] = 'success'
     @response[:threads] = Array.new
     offset = (page_number * amount) - amount
+    unless @response[:errors].empty?
+      @response[:status] = 'fail'
+      return respond!
+    end
     if @tag == '~'
       @title = t('overview')
       if params.has_key?(:hidden_tags) or params.has_key?(:hidden_posts)

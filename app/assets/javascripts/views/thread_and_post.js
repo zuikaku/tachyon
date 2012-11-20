@@ -326,11 +326,13 @@ var ThreadView = Backbone.View.extend({
         var rid = this.model.get('rid');
         if (this.className == 'thread') {
             var container = this.$el.parent();    
+            var isThread = true;
         } else {
             var container = this.$el;            
+            var isThread = false;
         }
         if (settings.isHidden(rid) == false)  {
-            settings.hide(rid);
+            settings.hide(rid, isThread);
             if (settings.get('strict_hiding') == true) {
                 if (this.className == 'thread') {
                     var next = container.next();
@@ -344,7 +346,7 @@ var ThreadView = Backbone.View.extend({
                 container.find('.post_container').remove();
             }
         } else {
-            settings.unhide(rid);
+            settings.unhide(rid, isThread);
             this.render();
             if (this.className == 'thread' && parseInt(settings.get('last_replies')) != 0) {
                 this.model.posts.each(function(post) {
