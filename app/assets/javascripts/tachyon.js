@@ -646,9 +646,11 @@ function initializeInterface() {
                 thread.updateRepliesCount(parseInt(message.replies[1]));
             }
         }
-        if (message.version != VERSION && versionMismatchAlerted == false) {
-            alert('Сайт обновился. Перезагрузите страницу.');
-            versionMismatchAlerted = true;
+        if (message.version != undefined) {
+            if (message.version != VERSION && versionMismatchAlerted == false) {
+                alert('Сайт обновился. Перезагрузите страницу.');
+                versionMismatchAlerted = true;
+            }
         }
         return false;
     });
