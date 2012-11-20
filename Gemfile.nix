@@ -1,6 +1,7 @@
 source 'https://rubygems.org'
 
 gem 'bundler'
+gem 'memcache-client'
 gem 'rvm'
 gem 'rails', '3.2.1'
 gem 'sqlite3'

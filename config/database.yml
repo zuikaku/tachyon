@@ -25,7 +25,7 @@ production:
   password: rosenkristall
   host: localhost
   pool: 50
-  timeout: 4000
+  timeout: 2000
 
 # production:
 #   adapter: sqlite3
