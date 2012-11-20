@@ -572,6 +572,7 @@ function initializeInterface() {
     }
     mainContainer.append(previews.el);
     mainContainer.append(settings.el);
+    mainContainer.after("<div id='connection_failed'>Потеряно соединение с сервером. Переподключаюсь...</div>");
     section = $("<section id='container'></section>");
     var footer = '<footer>Tachyon ' + VERSION
     footer += "<a id='mobile_link' href='http://m." + document.location.host + "'>мобильная версия</a></footer"
@@ -606,6 +607,12 @@ function initializeInterface() {
         retry: 3
     });
     cometClient.disable('websoket');
+    cometClient.bind('transport:down', function() {
+        $("#connection_failed").css('display', 'table');
+    });
+    cometClient.bind('transport:up', function() {
+        $("#connection_failed").css('display', 'none');
+    });
     var countersSubscription = cometClient.subscribe('/counters', function(message) {
         header.setCounters(message);
         if (message.post != undefined) {

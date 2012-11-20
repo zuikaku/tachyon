@@ -53,7 +53,6 @@ class ThreadsController < ApplicationController
   end
 
   def reply
-    sleep 2
     process_post
   end
 
