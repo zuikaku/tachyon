@@ -19,7 +19,7 @@
 //= require views/thread_and_post
 
 var settings, header, tagList, cometSubscription, previousPath,
-section, bottomMenu, loadingTimeout, threadsCollection,
+section, bottomMenu, loadingTimeout, threadsCollection, connectionFailedTimeout,
 livePostsCollection, currentTag, mobileLink, mouseOverElement = null;
 var admin = false;
 
@@ -604,13 +604,19 @@ function initializeInterface() {
     });
     cometClient = new Faye.Client('/comet', {
         timeout: 58,
-        retry: 3
+        retry: 2
     });
     cometClient.disable('websoket');
     cometClient.bind('transport:down', function() {
-        $("#connection_failed").css('display', 'table');
+        connectionFailedTimeout = setTimeout(function() {
+            $("#connection_failed").css('display', 'table');
+        }, 2500);
     });
     cometClient.bind('transport:up', function() {
+        if (connectionFailedTimeout != null) {
+            clearTimeout(connectionFailedTimeout);
+            connectionFailedTimeout = null;
+        }
         $("#connection_failed").css('display', 'none');
     });
     var countersSubscription = cometClient.subscribe('/counters', function(message) {
