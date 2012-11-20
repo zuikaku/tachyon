@@ -13,8 +13,8 @@ var FormView = Backbone.View.extend({
         "click #video_span":    "toggleFileOrVideo",
         'submit':               'ajaxSubmit',
         'click .editbox b, .editbox i, .editbox u, .editbox s, .editbox span, .editbox a': 'markup',
-        'focusin input, textarea': 'hidePlaceholder',
-        'focusout input, textarea': 'showPlaceholder',
+        // 'focusin input, textarea': 'hidePlaceholder',
+        // 'focusout input, textarea': 'showPlaceholder',
         'keydown textarea': function(event)  {
             if (event.ctrlKey && event.keyCode == 13) {
                 if (settings.get('ctrl_submit') == true) {
@@ -40,6 +40,9 @@ var FormView = Backbone.View.extend({
     },
 
     hidePlaceholder: function(event) {
+        if ($.browser.opera) {
+            return false;
+        }
         var input = $(event.currentTarget);
         if (input.attr('placeholder') != undefined) {
             input.removeAttr('placeholder');
@@ -47,6 +50,9 @@ var FormView = Backbone.View.extend({
     },
 
     showPlaceholder: function(event) {
+        if ($.browser.opera) {
+            return false;
+        }
         var input = $(event.currentTarget);
         if (input.val().length == 0) {
             input.attr('placeholder', input.data('placeholder'));
