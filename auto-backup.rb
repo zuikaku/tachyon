@@ -1,12 +1,49 @@
-date = Time.now
-date = "-#{date.month}-#{date.year}"
-begin
-  system("rm -r /srv/tachyon/backups/files/#{(Time.now - (3*86400)).day}#{date}")
-  system("rm /srv/tachyon/backups/database/#{(Time.now - (3*86400)).day}#{date}.mysql2")
-rescue 
-  # fuck it
+start         = Time.now
+date          = "-#{Time.now.month}-#{Time.now.year}"
+engine_path   = "/srv/tachyon/engine"
+backups_path  = "/srv/tachyon/backups"
+
+unless File.directory?(backups_path)
+  puts "Creating backups directory..."
+  Dir::mkdir(backups_path)
 end
-system("cp -r /srv/tachyon/engine/public/files /srv/tachyon/backups/files/#{Time.now.day}#{date}")
-system("thin -C /srv/tachyon/engine/config/thin.yml stop -T0")
-system("mysqldump -utrent -prosenkristall freeport7 > /srv/tachyon/backups/database/#{Timw.now.day}#{date}")
-system("thin -C /srv/tachyon/engine/config/thin.yml start")
+unless File.directory?(backups_path + '/database')
+  puts "Creating backups/database directory..."
+  Dir::mkdir(backups_path + '/database')
+end
+unless File.directory?(backups_path + '/files')
+  puts "Creating backups/files directory..."
+  Dir::mkdir(backups_path + '/files')
+end
+
+old = Time.now - 3*86400
+old = "#{old.day}-#{old.month}-#{old.year}"
+if File.directory?("#{backups_path}/files/#{old}")
+  puts "Removing old files backup..."
+  system "rm -r #{backups_path}/files/#{old}"
+end
+if File.exists?("#{backups_path}/database/#{old}.mysql2")
+  puts "Removing old database backup..."
+  system "rm -r #{backups_path}/database/#{old}.mysql2"
+end
+
+today = "#{Time.now.day}#{date}"
+if File.directory?("#{backups_path}/files/#{today}")
+  puts "Recent files backup already exists."
+else
+  puts "Copying files..."
+  system "cp -r #{engine_path}/public/files #{backups_path}/files/#{today}"
+end
+if File.exists?("#{backups_path}/database/#{today}.mysql2")
+  puts "Recent database backup already exists."
+else
+  puts "Stopping Thin server..."
+  system "thin -C #{engine_path}/config/thin.yml stop"
+  puts "Copying database..."
+  system "mysqldump -utrent -prosenkristall freeport7 > #{backups_path}/database/#{today}.mysql2"
+  puts "Starting Thin server..."
+  system "thin -C #{engine_path}/config/thin.yml start"
+end
+
+puts
+puts "Backup finished in #{(Time.now - start).to_i} seconds."
