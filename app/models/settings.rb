@@ -1,4 +1,4 @@
-class SettingsRecord < ActiveRecord::Base
+class Settings < ActiveRecord::Base
   set_table_name :settings
   serialize :allowed_file_types,  Array
   serialize :defence,             Hash
@@ -23,7 +23,7 @@ class SettingsRecord < ActiveRecord::Base
   end
 
   def self.get
-    record = SettingsRecord.create unless (record = SettingsRecord.first)
+    record = Settings.create unless (record = Settings.first)
     return record
   end
 

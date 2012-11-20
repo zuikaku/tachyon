@@ -27,7 +27,7 @@ class AdminController < ApplicationController
   end
 
   def get_settings
-    @defence = SettingsRecord.get.defence
+    @defence = Settings.get.defence
     render(layout: nil)
   end
 
@@ -83,7 +83,7 @@ class AdminController < ApplicationController
   end
 
   def set_settings
-    settings = SettingsRecord.get
+    settings = Settings.get
     defence = settings.defence
     if params[:dyson] == ""
       defence[:dyson] = nil

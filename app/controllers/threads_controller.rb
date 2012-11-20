@@ -378,7 +378,7 @@ class ThreadsController < ApplicationController
     get_ip
     @moder = Moder.find(session[:moder_id]) if session[:moder_id] != nil
     @response[:errors] = Array.new
-    @settings = SettingsRecord.get
+    @settings = Settings.get
     @post = RThread.new(params[:message]) if params[:action] == 'create'
     @post = RPost.new(params[:message]) if params[:action] == 'reply'
     validate_content if validate_permission

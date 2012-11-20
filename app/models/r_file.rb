@@ -14,7 +14,7 @@ class RFile < ActiveRecord::Base
   end
 
   def self.validate(params)
-    settings = SettingsRecord.get
+    settings = Settings.get
     file = params[:file]
     errors = Array.new
     if file == nil or file.kind_of?(String)

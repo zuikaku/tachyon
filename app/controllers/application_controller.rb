@@ -51,7 +51,7 @@ class ApplicationController < ActionController::Base
     set_captcha if @ip.post_captcha_needed and session[:moder_id] == nil
     check_defence_token
     if @token == nil
-      settings = SettingsRecord.get
+      settings = Settings.get
       set_defence_token if settings.defence[:dyson] != :omicron
     end
     respond!
