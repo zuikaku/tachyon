@@ -567,6 +567,9 @@ function initializeInterface() {
     mainContainer.append(header.el);
     mainContainer.append(bottomMenu.el);
     mainContainer.append(form.el);
+    if ($.browser.opera) {
+        form.adjustTopForOperagovno();
+    }
     mainContainer.append(previews.el);
     mainContainer.append(settings.el);
     section = $("<section id='container'></section>");

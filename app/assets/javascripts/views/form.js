@@ -13,8 +13,8 @@ var FormView = Backbone.View.extend({
         "click #video_span":    "toggleFileOrVideo",
         'submit':               'ajaxSubmit',
         'click .editbox b, .editbox i, .editbox u, .editbox s, .editbox span, .editbox a': 'markup',
-        // 'focusin input, textarea': 'hidePlaceholder',
-        // 'focusout input, textarea': 'showPlaceholder',
+        'focusin input, textarea': 'hidePlaceholder',
+        'focusout input, textarea': 'showPlaceholder',
         'keydown textarea': function(event)  {
             if (event.ctrlKey && event.keyCode == 13) {
                 if (settings.get('ctrl_submit') == true) {
@@ -37,6 +37,13 @@ var FormView = Backbone.View.extend({
             this.setCaptcha(tagList.captcha);
             tagList.captcha = undefined;
         }
+    },
+
+    adjustTopForOperagovno: function() {
+        var top = window.innerHeight - (this.$el.height() + 41);
+        top += "px";
+        this.$el.css('top', top);
+        return this;
     },
 
     hidePlaceholder: function(event) {
@@ -69,6 +76,9 @@ var FormView = Backbone.View.extend({
             var captchaResponse = this.$el.find('#captcha_word').val();
             if (captchaResponse.length < 3) {
                 errors.html('Введите капчу.');
+                if ($.browser.opera) {
+                    form.adjustTopForOperagovno();
+                }
                 this.toggleLoading('off');
                 setTimeout(function() {
                     $('#captcha_word').focus();
@@ -94,6 +104,9 @@ var FormView = Backbone.View.extend({
             data.append('returnpost', 'yeah sure');
         }
         settings.set('password', this.$el.find('#form_password').first().val());
+        if ($.browser.opera) {
+            setTimeout(form.adjustTopForOperagovno, 100);
+        }
         $.ajax({
             url: this.$el.attr('action'),
             data: data,
@@ -131,6 +144,9 @@ var FormView = Backbone.View.extend({
                     }
                 }
                 form.setCaptcha(response.captcha);
+                if ($.browser.opera) {
+                    form.adjustTopForOperagovno();
+                }
                 return false;
             }, 
             error: function() {
@@ -139,7 +155,6 @@ var FormView = Backbone.View.extend({
                 return false;
             }
         });
-        return false;
     },
 
     clear: function() {
@@ -179,6 +194,9 @@ var FormView = Backbone.View.extend({
     },
 
     show: function(postRid, threadRid, what) {
+        if ($.browser.opera && bottomMenu.$button.html() == 'закрыть форму') {
+            var operaIsShit = this.$el.offset();
+        }
         bottomMenu.setButtonValue('закрыть форму');
         if (what != 'reply') {
             what = 'create';
@@ -199,6 +217,9 @@ var FormView = Backbone.View.extend({
             this.$el.animate({right: 15}, 400);
         } else {
             this.$el.animate({right: -10}, 400);
+        }
+        if ($.browser.opera && operaIsShit != undefined) {
+            // this.$el.offset(operaIsShit);
         }
         return this;
     },
