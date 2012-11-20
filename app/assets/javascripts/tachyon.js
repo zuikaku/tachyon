@@ -22,6 +22,7 @@ var settings, header, tagList, cometSubscription, previousPath,
 section, bottomMenu, loadingTimeout, threadsCollection, connectionFailedTimeout,
 livePostsCollection, currentTag, mobileLink, mouseOverElement = null;
 var admin = false;
+var versionMismatchAlerted = false;
 
 $(document).ready(function() {
 var MainRouter = Backbone.Router.extend({
@@ -644,6 +645,10 @@ function initializeInterface() {
             if (thread != null) {
                 thread.updateRepliesCount(parseInt(message.replies[1]));
             }
+        }
+        if (message.version != VERSION && versionMismatchAlerted == false) {
+            alert('Сайт обновился. Перезагрузите страницу.');
+            versionMismatchAlerted = true;
         }
         return false;
     });

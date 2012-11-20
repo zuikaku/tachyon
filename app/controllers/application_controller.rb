@@ -74,6 +74,7 @@ class ApplicationController < ActionController::Base
     end
     date = (Time.zone.now - 2.days).at_midnight
     parameters = { ip_id: nil, defence_token_id: nil }
+    Ip.where("updated_at <=", (date - 3.days)).delete_all
     RPost.where("created_at <= ?", date).update_all(parameters)
     RThread.where("created_at <= ?", date).update_all(parameters)
     DefenceToken.where("updated_at < ?", date).delete_all
@@ -138,8 +139,9 @@ class ApplicationController < ActionController::Base
       Rails.cache.write("post_count", posts)
     end
     return {
-      online: Ip.where(updated_at: (Time.zone.now - 5.minutes)..Time.zone.now).count,
-      posts: posts,
+      online:   Ip.where(updated_at: (Time.zone.now - 5.minutes)..Time.zone.now).count,
+      posts:    posts,
+      version:  "VERSION",
     }
   end
 
