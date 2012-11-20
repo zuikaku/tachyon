@@ -45,14 +45,12 @@ var ThreadView = Backbone.View.extend({
     },
 
     updateRepliesCount: function(count) {
-        if (parseInt(settings.get('last_replies')) != 0) {
-            return false;
-        }
         var repliesTotalLink = this.$el.find('.replies_total');
-        repliesTotalLink.html(this.verbosePosts(count));
-        if (action == 'show') {
+        if (parseInt(settings.get('last_replies')) != 0 || this.className != 'thread' 
+            || repliesTotalLink.html() == undefined || action == 'show') {
             return false;
         }
+        repliesTotalLink.html(this.verbosePosts(count));
         var seen = settings.get('seen')[this.model.get('rid')];
         var repliesCount = this.$el.find('.replies_count');
         if (seen == undefined) {
