@@ -7,10 +7,14 @@ end
 
 module Tachyon
   class Application < Rails::Application
+    def self.version 
+      '1.07.123'
+    end
     config.i18n.default_locale = :ru
     config.encoding = "utf-8"
     config.filter_parameters += ["message[password]", "password"]
     config.assets.enabled = true
-    config.assets.version = "1.07.106"
+    config.assets.version = self.version
   end
+  public
 end

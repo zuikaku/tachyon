@@ -29,7 +29,7 @@
           <%= yield %>
         </div>
         <div id="footer">
-          Tachyon <%= VERSION %>
+          Tachyon <%= Tachyon::Application.version %>
           <br />
           <% if session[:dont_force_mobile] %>
             <a href="http://<%= @host.gsub('m.', '') + request.headers['REQUEST_PATH'] %>">полная версия</a>

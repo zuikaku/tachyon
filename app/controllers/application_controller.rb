@@ -132,7 +132,6 @@ class ApplicationController < ActionController::Base
 
   def get_counters
     unless (posts = Rails.cache.read("post_count"))
-      # start = Time.zone.now - (Time.now.min.minutes + Time.now.sec) # posts per hour
       start = Time.zone.now.at_midnight
       posts = RPost.where(created_at: start..Time.zone.now).count
       posts += RThread.where(created_at: start..Time.zone.now).count 
@@ -141,7 +140,7 @@ class ApplicationController < ActionController::Base
     return {
       online:   Ip.where(updated_at: (Time.zone.now - 5.minutes)..Time.zone.now).count,
       posts:    posts,
-      version:  VERSION,
+      version:  Tachyon::Application.version,
     }
   end
 
