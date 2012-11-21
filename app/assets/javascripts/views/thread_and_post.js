@@ -239,7 +239,7 @@ var ThreadView = Backbone.View.extend({
             if (this.className == 'thread' && editable == false && admin == false) {
                 return false;
             }
-            this.$el.find(".manage_container").css('display', 'inline');
+            this.$el.find(".manage_container").css('display', 'inline-block');
         }
     },
 
