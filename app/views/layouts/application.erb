@@ -12,19 +12,7 @@
         <%= stylesheet_link_tag(:tachyon_mobile, media: "all") %>
       <% else %>
         <%= stylesheet_link_tag(:tachyon, media: "all") %>
-        <script type="text/javascript">
-          production    = <%= Rails.env.production?.to_s %>;
-          VERSION       = "<%= VERSION %>";
-          NAME          = "FP7";
-          resources     =  {
-            mainScript: "<%= javascript_path(:tachyon) %>",
-            styles: {
-              photon:   "<%= stylesheet_path(:photon)  %>",
-              mauron:   "<%= stylesheet_path(:mauron) %>",
-            }
-          }
-        </script>
-        <%= javascript_include_tag(:preload, cache: false) %>
+        <%= javascript_include_tag(:preload) %>
       <% end %>
     <% end %>
     <!-- 
