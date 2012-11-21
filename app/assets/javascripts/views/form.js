@@ -27,12 +27,14 @@ var FormView = Backbone.View.extend({
     initialize: function() {
         _.bindAll(this, 'render');
         this.render();
-        $.each(this.$el.find('input, textarea'), function(index, div) {
-            div = $(div);
-            if (div.attr('placeholder') != undefined) {
-                div.data('placeholder', div.attr('placeholder'));
-            }
-        });
+        if ($.browser.opera == false) {
+            $.each(this.$el.find('input, textarea'), function(index, div) {
+                div = $(div);
+                if (div.attr('placeholder') != undefined) {
+                    div.data('placeholder', div.attr('placeholder'));
+                }
+            });
+        }
         if (tagList.captcha != undefined) {
             this.setCaptcha(tagList.captcha);
             tagList.captcha = undefined;
@@ -75,7 +77,7 @@ var FormView = Backbone.View.extend({
         if (this.captchaChallenge != undefined) {
             var captchaResponse = this.$el.find('#captcha_word').val();
             if (captchaResponse.length < 3) {
-                errors.html('Введите капчу.');
+                errors.html(l.errors.captcha.null);
                 if ($.browser.opera) {
                     form.adjustTopForOperagovno();
                 }
@@ -120,6 +122,10 @@ var FormView = Backbone.View.extend({
                     settings.set('defence_token', response.defence_token);
                 }
                 if (response.status == 'success') {
+                    form.$el.find("#file_span").addClass('selected');
+                    form.$el.find("#video_span").removeClass('selected');
+                    form.$el.find("#file_field").css('display', 'inline');form
+                    form.$el.find("#video_field").css('display', 'none');
                     form.clear().hide();
                     if (response.post != undefined) {
                         router.addPost(response.post, true);
@@ -151,7 +157,7 @@ var FormView = Backbone.View.extend({
             }, 
             error: function() {
                 form.toggleLoading('off');
-                errors.html('Неизвестная ошибка. Проверьте соединение.')
+                errors.html(l.errors.unknown)
                 return false;
             }
         });
@@ -194,10 +200,7 @@ var FormView = Backbone.View.extend({
     },
 
     show: function(postRid, threadRid, what) {
-        if ($.browser.opera && bottomMenu.$button.html() == 'закрыть форму') {
-            var operaIsShit = this.$el.offset();
-        }
-        bottomMenu.setButtonValue('закрыть форму');
+        bottomMenu.setButtonValue(l.close_form);
         if (what != 'reply') {
             what = 'create';
         }
@@ -218,9 +221,6 @@ var FormView = Backbone.View.extend({
         } else {
             this.$el.animate({right: -10}, 400);
         }
-        if ($.browser.opera && operaIsShit != undefined) {
-            // this.$el.offset(operaIsShit);
-        }
         return this;
     },
 
@@ -236,16 +236,16 @@ var FormView = Backbone.View.extend({
         bottomMenu.$el.css('display', 'block');
         if (what == 'create') {
             this.$el.attr('action', '/create');
-            this.$el.find('.disclaimer').first().html('Создать новый тред:');
+            this.$el.find('.disclaimer').first().html(l.create_new_thread + ":");
             this.toggleTagsOrSage('tags');
-            var menuValue = 'создать тред';
+            var menuValue = l.create_thread;
         } else {
             this.$el.attr('action', '/thread/' + rid + '/reply');
-            this.$el.find('.disclaimer').first().html('Ответить в тред #' + rid + ":");
+            this.$el.find('.disclaimer').first().html(l.reply_to_thread + ' #' + rid + ":");
             this.toggleTagsOrSage('sage');
-            var menuValue = 'ответить';
+            var menuValue = l.reply
         }
-        if ($("#bottom_menu #qr_button").html() != 'закрыть форму') {
+        if ($("#bottom_menu #qr_button").html() != l.close_form) {
             bottomMenu.setButtonValue(menuValue);
         }
         return this;
@@ -315,8 +315,8 @@ var FormView = Backbone.View.extend({
                 insertMarkup('> ', ' ');
             }
         } else if (clicked.is('a')) {
-            var url = prompt("Введите URL:");
-            var name = prompt("Введите название ссылки:");
+            var url = prompt(l.link_prompt.url);
+            var name = prompt(l.link_prompt.name);
             if (url.length > 0 && name.length > 0) {
                 if (url.substring(0, 7) != 'http://' && url.substring(0, 8) != 'https://') {
                     url = 'http://' + url;
@@ -343,11 +343,11 @@ var FormView = Backbone.View.extend({
 
     render: function() {
         var t = "<div class='divider errors'></div>";
-        t += "<div class='divider disclaimer'>Создать новый тред:</div>";
+        t += "<div class='divider disclaimer'>" + l.create_new_thread + ":</div>";
         t += "<div class='divider'>";
             t += "<input type='text' name='message[title]' id='form_title'";
-            t += " placeholder='Тема сообщения, максимум 60 символов'>";
-            t += "<input type='submit' value='отправить' class='form_submit'>";
+            t += " placeholder='" + l.form.placeholder.title + "'>";
+            t += "<input type='submit' value='" + l.send + "' class='form_submit'>";
         t += "</div><div class='divider'>";
             t += "<div class='editbox'>";
                 t += "<b>Bold</b>";
@@ -360,21 +360,21 @@ var FormView = Backbone.View.extend({
             t += "</div>"
         t += "</div>";
         t += "<div class='divider'><textarea name='message[message]' ";
-        t += "placeholder='Текст сообщения, максимум 5000 символов'></textarea></div>";
+        t += "placeholder='" + l.form.placeholder.message + "'></textarea></div>";
         t += "<div class='divider mini'>";
             t += "<div class='left'>";
-                t += "<span id='file_span' class='selected'>Файл</span>";
+                t += "<span id='file_span' class='selected'>" + l.file + "</span>";
                 t += "&nbsp;/&nbsp;";
                 t += "<span id='video_span'>YouTube</span>";
                 t += "<span><input type='file' name='file' id='file_field'></span>";
-                t += "<input type='text' name='video' id='video_field'  placeholder='Адрес видео'>";
+                t += "<input type='text' name='video' id='video_field'  placeholder='" + l.form.placeholder.video + "'>";
             t += "</div><div class='right'>";
                 t += "<label id='sage'>";
                     t += "sage: <input type='checkbox' name='message[sage]'>";
                 t += "</label><label id='form_tags'>";
-                    t += "тэги: <input type='text' id='tag_field' name='tags'>";
+                    t += l.tags + ": <input type='text' id='tag_field' name='tags'>";
                 t += "</label><label>";
-                    t += "пароль: <input type='password' id='form_password'";
+                    t += l.password + ": <input type='password' id='form_password'";
                     t += " name='message[password]' ";
                     if (settings.get('password') != undefined) {
                         t += "value='" + settings.get("password") + "' ";
@@ -385,7 +385,7 @@ var FormView = Backbone.View.extend({
         t += "</div>";
         t += "<div class='divider' id='captcha_field'>";
             t += "<img alt='captcha' id='captcha_image' src='"+ window.base64images.loading + "' />";
-            t += "<input id='captcha_word' name='captcha[response]' placeholder='введите символы' type='text'>";
+            t += "<input id='captcha_word' name='captcha[response]' placeholder='" + l.form.placeholder.captcha + "' type='text'>";
         t += "</div>";
         this.el.innerHTML = t;
         return this;

@@ -16,17 +16,17 @@ var BottomMenuView = Backbone.View.extend({
     },
 
     render: function() {
-        var t = "<span id='qr_button'>создать тред</span>";
+        var t = "<span id='qr_button'>" + l.create_thread + "</span>";
         this.el.innerHTML = t;
         return this;
     },
 
     callReplyForm: function() {
         var button = this.$el.find("#qr_button");
-        if (button.html() == 'закрыть форму') {
+        if (button.html() == l.close_form) {
             form.hide();
         } else {
-            if (button.html() == 'ответить') {
+            if (button.html() == l.reply) {
                 form.show(undefined, null, 'reply'); 
             } else {
                 form.show(undefined, undefined, 'create');
@@ -54,8 +54,8 @@ var BottomMenuView = Backbone.View.extend({
 
     toggleLamerButtons: function(value) {
         if (value == true) {
-            this.el.innerHTML += "<span id='down_button'>вниз</span>"
-            + "<span id='up_button'>вверх</span>";
+            this.el.innerHTML += "<span id='down_button'>" + l.down + "</span>"
+            + "<span id='up_button'>" + l.up + "</span>";
         } else {
             this.$el.find("#down_button, #up_button").remove();
         }

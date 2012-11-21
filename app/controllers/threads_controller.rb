@@ -183,8 +183,13 @@ class ThreadsController < ApplicationController
     @response[:errors] = Array.new
     if @mobile == true
       cache = Rails.cache.read("views/#{params[:tag]}/#{page_number}")
-      return render(text: cache, layout: 'application') if cache
+      return render(layout: 'application') if cache
       get_tag
+    end
+    if params[:order] == 'created_at'
+      order = "created_at DESC"
+    else
+      order = 'bump DESC'
     end
     amount = params[:amount].to_i
     amount = 7 if @mobile
@@ -217,11 +222,11 @@ class ThreadsController < ApplicationController
           hidden_rids += tag.r_threads.pluck('r_threads.rid') if hidden_tags.include?(tag.alias)
         end
         # костыли и велосипеды
-        thread_rids = RThread.find(:all, select: 'rid', order: 'bump DESC', 
+        thread_rids = RThread.find(:all, select: 'rid', order: order, 
           conditions: ['rid NOT IN (?)', hidden_rids], limit: amount, offset: offset)
         total = RThread.where('rid NOT IN (?)', hidden_rids).count
       else 
-        thread_rids = RThread.find(:all, select: 'rid', order: 'bump DESC', limit: amount, offset: offset)
+        thread_rids = RThread.find(:all, select: 'rid', order: order, limit: amount, offset: offset)
         total = RThread.count
       end
     elsif @tag == 'favorites'
@@ -235,13 +240,13 @@ class ThreadsController < ApplicationController
         params[:rids][i] = params[:rids][i].to_i
       end
       thread_rids = RThread.connection.select_all("SELECT r_threads.rid FROM r_threads
-      WHERE r_threads.rid IN (#{params[:rids].join(', ')}) ORDER BY bump DESC LIMIT #{amount} OFFSET #{offset}")
+      WHERE r_threads.rid IN (#{params[:rids].join(', ')}) ORDER BY #{order} LIMIT #{amount} OFFSET #{offset}")
     else
       return if @tag == nil and @mobile == true
       @title = @tag.name
       if params.has_key?(:hidden_tags) or params.has_key?(:hidden_posts)
         conditions = ["r_threads.rid NOT IN (?) AND tags.id = ?", [1], @tag.id]
-        rids = RThread.order('bump DESC').joins(:tags).where(conditions).limit(amount).offset(offset).pluck('r_threads.rid')
+        rids = RThread.order(order).joins(:tags).where(conditions).limit(amount).offset(offset).pluck('r_threads.rid')
         thread_rids = Array.new
         rids.each { |rid| thread_rids << {'rid' => rid} }
         total = RThread.joins(:tags).where(conditions).count
@@ -249,8 +254,8 @@ class ThreadsController < ApplicationController
         thread_rids = RThread.connection.select_all("SELECT r_threads.rid FROM r_threads
           INNER JOIN r_threads_tags ON r_threads_tags.r_thread_id = r_threads.id 
           INNER JOIN tags ON tags.id = r_threads_tags.tag_id WHERE tags.id = '#{@tag.id}'
-          ORDER BY bump DESC LIMIT #{amount} OFFSET #{offset}")
-        total = RThread.order('bump DESC').joins(:tags).where("tags.id = ?", @tag.id).count
+          ORDER BY #{order} LIMIT #{amount} OFFSET #{offset}")
+        total = RThread.order(order).joins(:tags).where("tags.id = ?", @tag.id).count
       end
     end
     thread_rids.each do |hash|

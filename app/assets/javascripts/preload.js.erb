@@ -1,6 +1,5 @@
 production    = <%= Rails.env.production?.to_s %>;
 VERSION       = "<%= Tachyon::Application.version.to_s %>";
-NAME          = "FP7";
 resources     =  {
     mainScript: "<%= javascript_path(:tachyon) %>",
     styles: {

@@ -438,10 +438,9 @@ var ThreadView = Backbone.View.extend({
             var t = "вчера в ";
         } else {
             var t = datetime.getDate() + " ";
-            var monthNames = [  "января",   "февраля",  "марта",
-                                "апреля",   "мая",      "июня",
-                                "июля",     "августа",  "сентября",
-                                "октября",  "ноября",   "декабря"  ];
+            var monthNames = [  "января",   "февраля",  "марта",  "апреля",   
+                                "мая",      "июня",     "июля",   "августа",  
+                                "сентября", "октября",  "ноября", "декабря"  ];
             t += monthNames[datetime.getMonth()] + " ";
             t += datetime.getFullYear() + " г. в ";
         }

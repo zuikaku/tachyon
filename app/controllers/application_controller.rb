@@ -75,6 +75,7 @@ class ApplicationController < ActionController::Base
     date = (Time.zone.now - 2.days).at_midnight
     parameters = { ip_id: nil, defence_token_id: nil }
     Ip.where("updated_at <=", (date - 3.days)).delete_all
+    RPost.where(r_thread_id: nil).delete_all
     RPost.where("created_at <= ?", date).update_all(parameters)
     RThread.where("created_at <= ?", date).update_all(parameters)
     DefenceToken.where("updated_at < ?", date).delete_all

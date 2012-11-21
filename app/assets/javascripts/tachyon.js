@@ -7,6 +7,7 @@
 //= require caret
 //= require scrollto
 
+//= require i18n
 //= require models
 //= require settings
 //= require views/images
@@ -42,7 +43,7 @@ var MainRouter = Backbone.Router.extend({
     }, 
 
     setTitle: function(title) {
-        var set = NAME;
+        var set = l.short_title;
         if (production == false) {
             set += " dev ";
         }
@@ -118,7 +119,7 @@ var MainRouter = Backbone.Router.extend({
                 }
                 controller = 'about'; action = 'about';
                 bottomMenu.vanish();
-                router.setTitle('Информация');
+                router.setTitle(l.about);
                 hideLoadingIndicator();
                 header.$el.find('#about_link').addClass('active');
                 section.html(response);
@@ -203,7 +204,7 @@ var MainRouter = Backbone.Router.extend({
                 if (response.thread.title.length > 0) {
                     var title = response.thread.title;
                 } else {
-                    var title = "тред №" + response.thread.rid;
+                    var title = l.thread + " №" + response.thread.rid;
                 }
                 title += " (";
                 for (var i=0; i < response.thread.tags.length; i++) {
@@ -225,8 +226,8 @@ var MainRouter = Backbone.Router.extend({
                 seen[parseInt(thread.model.get('rid'))] = thread.model.get('replies_count');
                 settings.set('seen', seen);
                 cometSubscription = cometClient.subscribe('/thread/' + rid, router.addPost);
-                var buttons = "<div class='thread_buttons'><a href='/~/' class='back_link'>← Назад</a>" 
-                + "<a href='#' class='show_all_pictures_button'>Развернуть картинки</a></div>";
+                var buttons = "<div class='thread_buttons'><a href='/~/' class='back_link'>← " + l.back + "</a>" 
+                + "<a href='#' class='show_all_pictures_button'>" + l.expand_pictures + "</a></div>";
                 thread.container.before(buttons);
                 thread.container.after(buttons);
                 $('.show_all_pictures_button').unbind().click(function(event) {
@@ -255,7 +256,7 @@ var MainRouter = Backbone.Router.extend({
         if (page != 1) {
             link += '/page/' + page;
         }
-        var data = {amount: settings.get('threads_per_page')};
+        var data = {amount: settings.get('threads_per_page'), order: settings.get('order')};
         if (tag == 'favorites') {
             data.rids = settings.get('favorites');
         }
@@ -277,11 +278,11 @@ var MainRouter = Backbone.Router.extend({
                 header.$el.find("#tags_link").addClass('active');
                 if (tag == '~') {
                     tagList.$el.find("#overview_tag").addClass('selected');
-                    router.setTitle('Обзор');
+                    router.setTitle(l.overview);
                 } else if (tag == 'favorites') {
                     header.$el.find(".active").removeClass('active');
                     header.$el.find("#favorites_link").addClass('active');
-                    router.setTitle('Избранное');
+                    router.setTitle(l.favorites);
                 } else {
                     var tagElement = tagList.$el.find("#" + tag);
                     tagElement.addClass('selected');
@@ -307,7 +308,7 @@ var MainRouter = Backbone.Router.extend({
                 }
                 threadsCollection = new ThreadsCollection(threads);
                 if (threadsCollection.length == 0) {
-                    section.prepend('<div class="emptiness">Тут пусто, нет ничего вообще.</div>')   
+                    section.prepend('<div class="emptiness">' + l.emptiness + '</div>')   
                 }
                 if (response.pages != undefined) {
                     section.append(paginator.render(response.pages, page, tag).el);
@@ -338,7 +339,7 @@ var MainRouter = Backbone.Router.extend({
                 post.view = new PostView({id: 'i' + post.get('rid')}, post);
                 if (lastReplies == 0) {
                     if ((i+1) > (parseInt(seen[thread.get('rid')])) && newPlaced == false) {
-                        container.append("<div id='new'>новые посты:</div>");
+                        container.append("<div id='new'>" + l.new_posts + ":</div>");
                         newPlaced = true;
                     }
                 }
@@ -361,7 +362,6 @@ var MainRouter = Backbone.Router.extend({
             router.highlightPost(post.get('rid'), settings.get('scroll_to_post'));
         }
         setTimeout(function() {
-            // thread = threadsCollection.first();
             var seen = settings.get('seen');
             seen[parseInt(thread.get('rid'))] = thread.get('replies_count');
             settings.set('seen', seen);
@@ -394,7 +394,7 @@ var MainRouter = Backbone.Router.extend({
     notFound: function() {
         controller = 'application'; action = 'not_found';
         var t = "<div class='not_found'><h1>404</h1>";
-        t += "<span>По этой ссылке ничего нет. Совсем.</span></div>";
+        t += "<span>" + l.errors.not_found.link + "</span></div>";
         section.html(t);
         bottomMenu.vanish();
         hideLoadingIndicator();
@@ -404,7 +404,7 @@ var MainRouter = Backbone.Router.extend({
 
     showError: function(response) {
         if (response == undefined) {
-            var errors = ["Что-то пошло не так. Мы точно не знаем, что именно."];
+            var errors = [l.errors.unknown];
         } else {
             if (response.errors != undefined) {
                 var errors = response.errors;
@@ -415,7 +415,7 @@ var MainRouter = Backbone.Router.extend({
         controller = 'application'; action = 'error';
         bottomMenu.vanish();
         hideLoadingIndicator();
-        section.html('<h1>Ошибка:</h1>');
+        section.html('<h1>' + l.error + ':</h1>');
         errors.forEach(function(error) {
             section.append('<br />' + error); 
         });
@@ -424,7 +424,7 @@ var MainRouter = Backbone.Router.extend({
     },
 
     adjustFooter: function() {
-        if (mainContainer.height() < (window.innerHeight - 100)) {
+        if (mainContainer.height() < (window.innerHeight - 150)) {
             $('footer').css({position: 'absolute', bottom: 0});
         } else {
             $('footer').css({position: 'static', bottom: 'none'});
@@ -521,6 +521,9 @@ function hideLoadingIndicator() {
         loadingIndicator.animate({opacity: 0}, 300);
         setTimeout(function() {
             loadingIndicator.css('display', 'none');
+            if (loadingIndicator.attr('src') != window.base64images.loading) {
+                loadingIndicator.attr('src', window.base64images.loading);
+            }
         }, 350);
     }, 100);
     return false;
@@ -557,7 +560,6 @@ function initializeInterface() {
     settings.renderTags(tagList.renderTagTable(5, true));
     mainContainer = $('#main_container');
     loadingIndicator = $("#loading");
-    loadingIndicator.attr('src', window.base64images.loading);
     router = new MainRouter;
     form = new FormView;
     bottomMenu = new BottomMenuView;
@@ -573,10 +575,11 @@ function initializeInterface() {
     }
     mainContainer.append(previews.el);
     mainContainer.append(settings.el);
-    mainContainer.after("<div id='connection_failed'>Потеряно соединение с сервером. Переподключаюсь...</div>");
+    mainContainer.after("<div id='connection_failed'>" + l.errors.connection + "</div>");
     section = $("<section id='container'></section>");
     var footer = '<footer>Tachyon ' + VERSION
-    footer += "<a id='mobile_link' href='http://m." + document.location.host + "'>мобильная версия</a></footer"
+    footer += "<a id='mobile_link' href='http://m." + document.location.host 
+    + "'>" + l.mobile_version + "</a></footer>";
     mainContainer.append(section).append(footer);
     mobileLink = $("#mobile_link");
     header.setFixed(settings.get('fixed_header'));
@@ -648,7 +651,7 @@ function initializeInterface() {
         }
         if (message.version != undefined) {
             if (message.version != VERSION && versionMismatchAlerted == false) {
-                alert('Сайт обновился. Перезагрузите страницу.');
+                alert(t.site_updated);
                 versionMismatchAlerted = true;
                 $("footer").css('color', 'red');
             }

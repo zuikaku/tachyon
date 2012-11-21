@@ -1,9 +1,9 @@
 <html>
   <head>
     <% if @title != nil %>
-      <title>FP7 - <%= @title %></title>
+      <title><%= "#{t('main_title')} - #{@title}" %></title>
     <% else %>
-      <title>FP7</title>
+      <title><%= "#{t('main_title')}" %></title>
     <% end %>
     <meta http-equiv="Content-Type", content="text/html; charset=utf-8" />
     <%= csrf_meta_tags %>

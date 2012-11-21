@@ -27,6 +27,7 @@ var SettingsView = Backbone.View.extend({
             search_buttons:     false,
             ctrl_submit:        true,
             mamka:              false,
+            order:              'bump',
             style:              'tachyon',
         }
         var settingsLink = this;
@@ -113,7 +114,7 @@ var SettingsView = Backbone.View.extend({
         var contains = this.contains(this.get('favorites'), threadRid);
         if (contains[0] == false && action == 'add') {
             if (favorites.length >= 50) {
-                alert('В избранном может быть не более 50 тредов.');
+                alert(t.errors.favorites_too_many);
                 return false;
             } 
             favorites.push(threadRid);
@@ -191,7 +192,7 @@ var SettingsView = Backbone.View.extend({
             url: '/admin/settings/get',
             success: function(response) {
                 settings.$el.find("#settings_switch").append("<div class" +
-                    "='admin_settings'>Защита</div>");
+                    "='admin_settings'>" + l.defence + "</div>");
                 settings.$el.append(response);
                 var dyson = settings.$el.find("#admin_settings #dyson select").val();
                 settings.$el.find("#" + dyson).css('display', 'block');
@@ -328,13 +329,13 @@ var SettingsView = Backbone.View.extend({
 
     render: function() {
         var settingsLink = this;
-        var t = "<span title='закрыть' class='close_button'>×</span><br />";
+        var t = "<span title='" + l.close + "' class='close_button'>×</span><br />";
         t += "<div id='settings_switch'>"
-            + "<div class='view_settings active'>Внешний вид</div>"
-            + "<div class='content_settings'>Фильтр контента</div>"
+            + "<div class='view_settings active'>" + l.settings.view + "</div>"
+            + "<div class='content_settings'>" + l.settings.content_filter + "</div>"
         + "</div>";
         t += "<div id='view_settings'>"
-        t += "<label>Стиль: <select name='style'>";
+        t += "<label>" + l.settings.style + ": <select name='style'>";
             ['tachyon', 'photon', 'mauron'].forEach(function(style) {
                 t += "<option name='" + style + "'";
                 if (settingsLink.get('style') == style) {
@@ -345,41 +346,35 @@ var SettingsView = Backbone.View.extend({
             });
             t += "</select>"
         + "</label><br /><br />";
-        t += "<label>"
-            + "Показывать по "
-            + "<input class='threads_per_page' name='threads_per_page'" 
-            + " type='text' value='" + this.get('threads_per_page') + "' />"
-            + " тредов на странице."
-        + "</label><br />";
-        t += "<label>"
+        t += "<label>";
+            var input = "<input class='threads_per_page' name='threads_per_page'" 
+            + " type='text' value='" + this.get('threads_per_page') + "' />";
+            t += l.settings.threads_per_page.replace('-x-', input);
+        t += "</label><br />";
+        t += "<label>";
             + "Показывать по ";
-            t += "<select name='last_replies'>";
+            var input = "<select name='last_replies'>";
                 for (var i = 0; i < 7; i++) {
-                    t += "<option name='" + i + "'";
+                    input += "<option name='" + i + "'";
                     if (i == this.get('last_replies')) {
-                        t += " selected='selected'";
+                        input += " selected='selected'";
                     }
-                    t += ">" + i + "</option>";
+                    input += ">" + i + "</option>";
                 }
-            t += "</select>";
-            t += " последних ответов после каждого треда.";
+            input += "</select>";
+            t += l.settings.last_replies.replace('-x-', input);
         t += "</label><br /><br />";
-        var booleans = {
-            fixed_header:   'закрепить меню сверху',
-            scroll_to_post: 'перематывать страницу к новому посту после его написания',
-            ctrl_submit:    'отправлять сообщения при нажатии Ctrl+Return',
-            shadows:        'показывать тени постов (могут замедлять прокрутку)',
-            lamer_buttons:  'показывать кнопки &laquo;вверх&raquo; и &laquo;вниз&raquo;',
-            search_buttons: 'показывать кнопки поиска картинок',
-            mamka:          'включить функцию &laquo;мамка в комнате&raquo;'
-        };
-        $.each(booleans, function(option, name) {
+        var booleans = [    'fixed_header',      'scroll_to_post',
+                            'ctrl_submit',       'shadows',
+                            'lamer_buttons',     'search_buttons',
+                            'mamka'                                ];
+        booleans.forEach(function(option) {
             t += "<label><input class='" + option + "' name='" + option;
             t += "' type='checkbox' ";
             if (settingsLink.get(option) == true) {
                 t += "checked='checked' ";
             }
-            t += "/> " + name + "</label><br />";
+            t += "/> " + l.settings[option] + "</label><br />";
         });
         t += "</div><div id='content_settings'>";
         t += "<br /><label><input type='checkbox' name='strict_hiding' value='" 
@@ -387,18 +382,15 @@ var SettingsView = Backbone.View.extend({
         if (this.get('strict_hiding') == true) {
             t += "checked='checked' ";
         }
-        t += "/> включить &laquo;жёсткое&raquo; скрытие</label>";
-        t += "<p>Если жесткое скрытие включено, то скрытые вами треды полностью     \
-        исчезают с ваших глаз, безо всяких напоминаний. Это также распространяется  \
-        на треды в скрытых вами тэгах. Осторожно! Треды, в которых есть хотя бы     \
-        один из скрытых вами тэгов, не будут отображаться в обзоре совсем.</p>";
+        t += "/> " + l.settings.strict_hiding + "</label>";
+        t += "<p>" + l.settings.strict_hiding_about + "</p>";
         t += "</div>";
         this.el.innerHTML = t;
         return this;
     },
 
     renderTags: function(tags) {
-        tags = "<span>Скрывать треды с тэгами: </span>" + tags;
+        tags = "<span>" + l.settings.hide_tags + ": </span>" + tags;
         this.$el.find("#content_settings").prepend(tags);
         return this;
     },

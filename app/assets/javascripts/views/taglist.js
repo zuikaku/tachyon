@@ -50,7 +50,7 @@ var TagListView = Backbone.View.extend({
     },
 
     render: function() {
-        var t = "<a href='/~/' id ='overview_tag'>/~/ Обзор</a>"
+        var t = "<a href='/~/' id ='overview_tag'>/~/ " + l.overview + "</a>"
         var taglist = this;
         var token = {};
         if (settings.get('defence_token') != undefined) {

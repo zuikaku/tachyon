@@ -185,7 +185,7 @@ var Preview = Backbone.View.extend({
 
     render: function(element) {
         if (element == undefined) {
-            this.el.innerHTML = "<p>Загружаем...</p>";
+            this.el.innerHTML = "<p>" + l.loading + "...</p>";
         } else {
             this.$el.html(element);
         }
@@ -202,12 +202,12 @@ var Preview = Backbone.View.extend({
     },
 
     notFound: function() {
-        this.$el.html("<p>Пост не найден. Наверное, его удалили.</p>");
+        this.$el.html("<p>" + l.errors.not_found.post + "</p>");
         return this;
     },
 
     error: function() {
-        this.$el.html("<p>Ошибка</p>");
+        this.$el.html("<p>" + l.error + "</p>");
         return this;
     }
 });

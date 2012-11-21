@@ -94,15 +94,15 @@ var HeaderView = Backbone.View.extend({
     },
 
     render: function() {
-        var t = "<h3><a href='/'>Freeport 7</a></h3>"
-        t += "<div id='posting_info'>за сегодня сообщений: <span>0</span>"
-        t += ", онлайн: <b>13</b></div>"
+        var t = "<h3><a href='/'>" + l.main_title + "</a></h3>"
+        t += "<div id='posting_info'>" + l.posts_today + ": <span>0</span>"
+        t += ", " + l.online + ": <b>13</b></div>"
         t += "<menu>"
-            t += "<li><a href='#' id='tags_link'>тэги ↓</a></li>"
-            t += "<li><a href='#' id='settings_link'>настройки</a></li>"
-            t += "<li><a id='about_link' href='/about/'>информация</a></li>"
-            t += "<li><a id='favorites_link' href='/favorites/'>избранное</a></li>"
-            t += "<li><a id='live_link' href='/live/'>live!</a></li>"
+            t += "<li><a href='#' id='tags_link'>" + l.tags + " ↓</a></li>"
+            t += "<li><a href='#' id='settings_link'>" + l.settings_title + "</a></li>"
+            t += "<li><a id='about_link' href='/about/'>" + l.about + "</a></li>"
+            t += "<li><a id='favorites_link' href='/favorites/'>" + l.favorites + "</a></li>"
+            t += "<li><a id='live_link' href='/live/'>" + l.live + "</a></li>"
         t += "</menu>"
         this.$el.append(t);
         if ($.browser.chrome) {
