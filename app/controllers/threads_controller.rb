@@ -226,11 +226,16 @@ class ThreadsController < ApplicationController
       end
     elsif @tag == 'favorites'
       return redirect_to("http://#{@host}/~/") if @mobile == true 
-      rids = ERB::Util.html_escape(params[:rids].join(",")).gsub(";", "").gsub('`', '')
-      thread_rids = RThread.connection.select_all("SELECT r_threads.rid FROM r_threads
-        WHERE r_threads.rid IN (#{rids})
-        ORDER BY bump DESC LIMIT #{amount} OFFSET #{offset}")
       total = params[:rids].size
+      if total > 50 
+        @response = {status: 'fail', errors: ['invalid request']}
+        return respond!
+      end
+      for i in 0..(params[:rids].size-1) 
+        params[:rids][i] = params[:rids][i].to_i
+      end
+      thread_rids = RThread.connection.select_all("SELECT r_threads.rid FROM r_threads
+      WHERE r_threads.rid IN (#{params[:rids].join(', ')}) ORDER BY bump DESC LIMIT #{amount} OFFSET #{offset}")
     else
       return if @tag == nil and @mobile == true
       @title = @tag.name

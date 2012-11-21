@@ -112,8 +112,8 @@ var SettingsView = Backbone.View.extend({
         var favorites = this.get('favorites');
         var contains = this.contains(this.get('favorites'), threadRid);
         if (contains[0] == false && action == 'add') {
-            if (favorites.length >= 100) {
-                alert('В избранном может быть не более 100 тредов.');
+            if (favorites.length >= 50) {
+                alert('В избранном может быть не более 50 тредов.');
                 return false;
             } 
             favorites.push(threadRid);
