@@ -304,7 +304,7 @@ var MainRouter = Backbone.Router.extend({
                     }
                 }
                 if (lastReplies == 0) {
-                    section.attr('style', "max-width: 1200px; margin: 0 auto; margin-top: 70px")
+                    section.attr('style', "max-width: 1050px; margin: 0 auto; margin-top: 70px")
                 }
                 threadsCollection = new ThreadsCollection(threads);
                 if (threadsCollection.length == 0) {
@@ -346,8 +346,10 @@ var MainRouter = Backbone.Router.extend({
                 container.append(post.view.render().el);
             }
         }
-        if (lastReplies == 0 && action == 'index') {
-            container.addClass("single");
+        if (lastReplies == 0 && action != 'show') {
+            if (container.find('.hidden').html() == undefined) {
+                container.addClass("single");
+            }
         }
         return { container: container, model: thread }
     },

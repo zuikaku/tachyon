@@ -8,7 +8,7 @@ end
 module Tachyon
   class Application < Rails::Application
     def self.version 
-      '1.08.210'
+      '1.08.314'
     end
     config.i18n.default_locale = :ru
     config.encoding = "utf-8"

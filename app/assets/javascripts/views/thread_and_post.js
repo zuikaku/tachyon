@@ -239,12 +239,12 @@ var ThreadView = Backbone.View.extend({
             if (this.className == 'thread' && editable == false && admin == false) {
                 return false;
             }
-            this.$el.find(".manage_container").css('display', 'inline-block');
+            this.$el.find(".manage_container").css('opacity', 1);
         }
     },
 
     hideManageButton: function() {
-        $('.manage_container').css('display', 'none');
+        $('.manage_container').css('opacity', 0);
     },
 
     showPreview: function(event) {
@@ -324,6 +324,7 @@ var ThreadView = Backbone.View.extend({
     toggleHiding: function(event) {
         event.preventDefault();
         var rid = this.model.get('rid');
+        var lastReplies = parseInt(settings.get('last_replies'));
         if (this.className == 'thread') {
             var container = this.$el.parent();    
             var isThread = true;
@@ -344,6 +345,7 @@ var ThreadView = Backbone.View.extend({
             } else {
                 this.el.innerHTML = this.renderHidden();
                 container.find('.post_container').remove();
+                container.removeClass('single');
             }
         } else {
             settings.unhide(rid, isThread);
@@ -353,6 +355,9 @@ var ThreadView = Backbone.View.extend({
                     post.view = new PostView({id: 'i' + post.get('rid')}, post);
                     container.append(post.view.render().el);
                 });
+            }
+            if (lastReplies == 0 && action != 'show') {
+                container.addClass('single');
             }
         }
         return false;
@@ -574,6 +579,9 @@ var ThreadView = Backbone.View.extend({
     },
 
     verbosePosts: function(number, type) {
+        if (number == 0) {
+            return "нет постов";
+        }
         var result = number + ' пост';
         var mod = number % 10;
         var mod2 = number % 100;
@@ -665,7 +673,9 @@ var ThreadView = Backbone.View.extend({
         var t = "<div class='thread_body'>";
         var lastReplies = parseInt(settings.get('last_replies'));
             if (this.model.get('file') != null) {
-                t += this.renderFileInfo(this.model.get('file'));
+                if (!(action != 'show' && lastReplies == 0))  {
+                    t += this.renderFileInfo(this.model.get('file'));
+                }
                 t += this.renderFileContainer(this.model.get('file'));
             }
             var url = '/thread/' + this.model.get('rid');             
@@ -692,8 +702,10 @@ var ThreadView = Backbone.View.extend({
             t += "<a href='" + url + "' class='post_link'>#" + this.model.get('rid');
             t += "</a>";
             t += "<span class='thread_info'>";
-                t += this.renderDateTime(this.model.get('created_at')) + ', ';
-                t += this.renderTagList(this.model.get('tags'));
+                t += this.renderDateTime(this.model.get('created_at'));
+                if (!(lastReplies == 0 && action != 'show')) {
+                    t += ', ' + this.renderTagList(this.model.get('tags'));
+                }
                 t += "<div class='manage_container'><span class='manage_button'>×</span>";
                 if (admin == true) {
                     t += "<span class='manage_button admin'>!</span>";
@@ -718,11 +730,16 @@ var ThreadView = Backbone.View.extend({
                 }
             }
         } else {
-            t += "<div class='replies_count'>";
-                t += "<a href='" + url + "' class='replies_total'>"
-                    t += this.verbosePosts(this.model.get('replies_count'));
-                t += "</a>";
-            t += "</div>";
+            if (action != 'show') {
+                t += "<hr /><div class='thread_bottom'>";
+                    t += "<div class='replies_count'>";
+                        t += "<a href='" + url + "' class='replies_total'>"
+                            t += this.verbosePosts(this.model.get('replies_count'));
+                        t += "</a>";
+                    t += "</div>";
+                    t += this.renderTagList(this.model.get('tags'));
+                t += "</div>"
+            }
         }
         this.el.innerHTML = t;
         if (lastReplies == 0) {
