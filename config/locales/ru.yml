@@ -48,6 +48,7 @@ ru:
       captcha: "введите символы"
   settings:
     view: 'Внешний вид'
+    font_size: "Размер шрифта"
     defence: 'Защита'
     content_filter: "Фильтр контента"
     style: "Стиль"

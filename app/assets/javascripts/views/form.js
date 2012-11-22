@@ -77,7 +77,7 @@ var FormView = Backbone.View.extend({
         if (this.captchaChallenge != undefined) {
             var captchaResponse = this.$el.find('#captcha_word').val();
             if (captchaResponse.length < 3) {
-                errors.html(l.errors.captcha.null);
+                errors.html(l.errors.captcha.old);
                 if ($.browser.opera) {
                     form.adjustTopForOperagovno();
                 }

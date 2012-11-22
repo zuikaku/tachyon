@@ -653,7 +653,7 @@ function initializeInterface() {
         }
         if (message.version != undefined) {
             if (message.version != VERSION && versionMismatchAlerted == false) {
-                alert(t.site_updated);
+                alert(l.site_updated);
                 versionMismatchAlerted = true;
                 $("footer").css('color', 'red');
             }

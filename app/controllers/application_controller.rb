@@ -73,12 +73,12 @@ class ApplicationController < ActionController::Base
       return render(text: 'gtfo')
     end
     date = (Time.zone.now - 2.days).at_midnight
-    parameters = { ip_id: nil, defence_token_id: nil }
-    Ip.where("updated_at <=", (date - 3.days)).delete_all
+    parameters = { ip_id: nil }
+    Ip.where("updated_at <= ?", (date - 3.days)).delete_all
     RPost.where(r_thread_id: nil).delete_all
     RPost.where("created_at <= ?", date).update_all(parameters)
     RThread.where("created_at <= ?", date).update_all(parameters)
-    DefenceToken.where("updated_at < ?", date).delete_all
+    DefenceToken.where("updated_at <= ?", (date - 3.days)).delete_all
     RThread.where(old: true).destroy_all
     Rails.cache.clear
     return render(text: 'cleanup successfull')

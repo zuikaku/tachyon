@@ -19,6 +19,7 @@ var SettingsView = Backbone.View.extend({
             seen:               {},
             threads_per_page:   15,
             last_replies:       0,
+            font_size:          14,
             fixed_header:       true,
             strict_hiding:      false,
             scroll_to_post:     true,
@@ -192,7 +193,7 @@ var SettingsView = Backbone.View.extend({
             url: '/admin/settings/get',
             success: function(response) {
                 settings.$el.find("#settings_switch").append("<div class" +
-                    "='admin_settings'>" + l.defence + "</div>");
+                    "='admin_settings'>" + l.settings.defence + "</div>");
                 settings.$el.append(response);
                 var dyson = settings.$el.find("#admin_settings #dyson select").val();
                 settings.$el.find("#" + dyson).css('display', 'block');
@@ -245,6 +246,7 @@ var SettingsView = Backbone.View.extend({
             case 'lamer_buttons':   this._lamer_buttons();  break;
             case 'mamka':           this._mamka();          break;
             case 'style':           this._style();          break;
+            case 'font_size':       this._font_size();      break;
         }
         return false;
     },
@@ -300,12 +302,20 @@ var SettingsView = Backbone.View.extend({
         return this;
     },
 
+    _font_size: function() {
+        $("#custom_font_size").remove();
+        $("head").append("<style id='custom_font_size' type='text/css'>.post blockquote, "
+            + ".thread blockquote {font-size: " + this.get('font_size') + "px !important}</style>");
+        return this;
+    },
+
     _set: function() {
         this.
         //     // _fixed_header().
         //     // _lamer_buttons().
                 _mamka().
                 _last_replies().
+                _font_size().
                 _style();
         //     // _shadows();
         return this;
@@ -352,7 +362,6 @@ var SettingsView = Backbone.View.extend({
             t += l.settings.threads_per_page.replace('-x-', input);
         t += "</label><br />";
         t += "<label>";
-            + "Показывать по ";
             var input = "<select name='last_replies'>";
                 for (var i = 0; i < 7; i++) {
                     input += "<option name='" + i + "'";
@@ -363,6 +372,16 @@ var SettingsView = Backbone.View.extend({
                 }
             input += "</select>";
             t += l.settings.last_replies.replace('-x-', input);
+        t += "</label></br /><label>"
+            t += l.settings.font_size + ": <select name='font_size'>";
+            [14, 16, 18, 20].forEach(function(size) {
+                t += "<option value='" + size + "'";
+                if (parseInt(settingsLink.get('font_size')) == size) {
+                    t += " selected='selected'";
+                }
+                t += ">" + size + "</option>";
+            });
+            t += "</select>";
         t += "</label><br /><br />";
         var booleans = [    'fixed_header',      'scroll_to_post',
                             'ctrl_submit',       'shadows',
