@@ -94,7 +94,7 @@ class AdminController < ApplicationController
         CometController.publish('/counters', counters)
       end
     end
-    Rails.cache.delete('views/modlog')
+    Rails.cache.delete('views/about/modlog')
     if @response[:errors].empty?
       @response[:status] = 'success' 
       log.save
