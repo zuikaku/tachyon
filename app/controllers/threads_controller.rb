@@ -240,7 +240,7 @@ class ThreadsController < ApplicationController
         params[:rids][i] = params[:rids][i].to_i
       end
       thread_rids = RThread.connection.select_all("SELECT r_threads.rid FROM r_threads
-      WHERE r_threads.rid IN (#{params[:rids].join(', ')}) ORDER BY #{order} LIMIT #{amount} OFFSET #{offset}")
+      WHERE r_threads.rid IN (#{params[:rids].join(', ')}) ORDER BY r_threads.#{order} LIMIT #{amount} OFFSET #{offset}")
     else
       return if @tag == nil and @mobile == true
       @title = @tag.name
@@ -254,7 +254,7 @@ class ThreadsController < ApplicationController
         thread_rids = RThread.connection.select_all("SELECT r_threads.rid FROM r_threads
           INNER JOIN r_threads_tags ON r_threads_tags.r_thread_id = r_threads.id 
           INNER JOIN tags ON tags.id = r_threads_tags.tag_id WHERE tags.id = '#{@tag.id}'
-          ORDER BY #{order} LIMIT #{amount} OFFSET #{offset}")
+          ORDER BY r_threads.#{order} LIMIT #{amount} OFFSET #{offset}")
         total = RThread.order(order).joins(:tags).where("tags.id = ?", @tag.id).count
       end
     end
