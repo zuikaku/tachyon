@@ -102,12 +102,24 @@ class ApplicationController < ActionController::Base
   end
 
   def clear_cache(post)
-    @thread = post.r_thread if post.kind_of?(RPost) and @thread == nil
-    @thread = post if post.kind_of?(RThread)
-    @thread.tags.each { |tag| Rails.cache.delete_matched("views/#{tag.to_s}") }
-    Rails.cache.delete_matched("#{@thread.rid}")
-    Rails.cache.delete_matched("views/~")
+    if @thread == nil
+      @thread = post.r_thread if post.kind_of?(RPost)
+      @thread = post if post.kind_of?(RThread)
+    end
+    # @thread.tags.each { |tag| Rails.cache.delete_matched("views/#{tag.to_s}") }
+    # Rails.cache.delete_matched("#{@thread.rid}")
+    # Rails.cache.delete_matched("views/~")
     Rails.cache.delete('post_count')
+    Rails.cache.delete("json/#{@thread.rid}/m")
+    Rails.cache.delete("json/#{@thread.rid}/f")
+    Rails.cache.delete("views/#{@thread.rid}/f")
+    Rails.cache.delete("views/#{@thread.rid}/m")
+    cached_pages = Rails.cache.read('cached_pages')
+    if cached_pages != nil
+      cached_pages.each_pair do |tag|
+        tag[1].each { |page| Rails.cache.delete("views/#{tag[0]}/#{page}")}
+      end
+    end
   end
 
   def check_mobile
